@@ -215,7 +215,51 @@ const initialSensors = [
   { id: 'SEN-108', landmark: 'Balkampet Main Road', type: 'Road Flood Depth', value: 12, status: 'NORMAL', unit: 'cm' }
 ]
 
-// LEAFLET MAP WRAPPER COMPONENT
+// HELPER FUNCTIONS FOR GIS STREET NETWORK ROUTING
+const getRouteCoordinates = (inc) => {
+  const depot = [17.4357, 78.4446] // Ameerpet Metro Depot
+  const target = [inc.lat !== undefined ? inc.lat : 17.4374, inc.lng !== undefined ? inc.lng : 78.4482]
+  
+  if (inc.location && inc.location.includes("Bandlaguda")) {
+    // Ameerpet -> Khairatabad Junction -> Lakdikapul -> Charminar -> Bandlaguda
+    return [depot, [17.4138, 78.4560], [17.4045, 78.4608], [17.3616, 78.4747], target]
+  }
+  if (inc.location && inc.location.includes("Alwal")) {
+    // Ameerpet -> Begumpet -> Paradise Junction -> Secunderabad -> Alwal
+    return [depot, [17.4375, 78.4735], [17.4436, 78.4842], [17.4344, 78.5015], target]
+  }
+  if (inc.location && inc.location.includes("SR Nagar")) {
+    // Ameerpet Metro -> SR Nagar Metro Corridor
+    return [depot, [17.4420, 78.4425], target]
+  }
+  if (inc.location && inc.location.includes("Satyam")) {
+    // Ameerpet Metro -> Satyam Theatre Road
+    return [depot, [17.4372, 78.4442], target]
+  }
+  return [depot, target]
+}
+
+const interpolatePath = (path, progress) => {
+  if (!path || path.length === 0) return [17.4357, 78.4446]
+  if (path.length === 1) return path[0]
+  if (progress <= 0) return path[0]
+  if (progress >= 100) return path[path.length - 1]
+
+  const numSegments = path.length - 1
+  const segmentDuration = 100 / numSegments
+  
+  const segmentIndex = Math.min(numSegments - 1, Math.floor(progress / segmentDuration))
+  const segmentProgress = (progress % segmentDuration) / segmentDuration
+  
+  const pStart = path[segmentIndex]
+  const pEnd = path[segmentIndex + 1]
+  
+  const lat = pStart[0] + (pEnd[0] - pStart[0]) * segmentProgress
+  const lng = pStart[1] + (pEnd[1] - pStart[1]) * segmentProgress
+  
+  return [lat, lng]
+}
+
 // LEAFLET MAP WRAPPER COMPONENT
 function MapContainer({ incidents, selectedId, setSelectedId, dispatchAnimations, mapPriorityFilter, mapStatusFilter, isMini = false }) {
   const mapRef = useRef(null)
@@ -352,20 +396,19 @@ function MapContainer({ incidents, selectedId, setSelectedId, dispatchAnimations
       const inc = incidents.find(i => i.id === id)
       if (!inc || inc.lat === undefined) return
 
-      const depot = [17.4357, 78.4446] // Ameerpet Metro
-      const target = [inc.lat, inc.lng]
+      // Retrieve multi-point street grid routing
+      const pathCoordinates = getRouteCoordinates(inc)
 
       // Draw routing dashed line
-      L.polyline([depot, target], {
+      L.polyline(pathCoordinates, {
         color: '#176f59',
         weight: 3,
         opacity: 0.7,
         dashArray: '6, 6'
       }).addTo(polylineLayer)
 
-      // Calculate current location along the line
-      const currentLat = depot[0] + ((target[0] - depot[0]) * anim.progress) / 100
-      const currentLng = depot[1] + ((target[1] - depot[1]) * anim.progress) / 100
+      // Interpolate current location along the multi-point path
+      const [currentLat, currentLng] = interpolatePath(pathCoordinates, anim.progress)
 
       const vehicleIcon = L.divIcon({
         className: 'leaflet-vehicle-icon',
@@ -422,17 +465,19 @@ function App() {
   const [operatorUser, setOperatorUser] = useState('')
   const [operatorPass, setOperatorPass] = useState('')
   const [loginError, setLoginError] = useState('')
+  const [operatorAuditChecked, setOperatorAuditChecked] = useState(false)
+  const [lastSubmitTime, setLastSubmitTime] = useState(0)
 
   // State Management with LocalStorage persistence
   const [incidents, setIncidents] = useState(() => {
-    const saved = localStorage.getItem('nxtwave_incidents_v4')
+    const saved = localStorage.getItem('nxtwave_incidents_v5')
     if (saved) {
       try {
         const parsed = JSON.parse(saved)
         // If it's the old schema (missing lat/lng), ignore cached data
         if (parsed.length > 0 && parsed[0].lat === undefined) {
-          localStorage.removeItem('nxtwave_incidents_v4')
-          localStorage.removeItem('nxtwave_teams_v4') // Reset teams too
+          localStorage.removeItem('nxtwave_incidents_v5')
+          localStorage.removeItem('nxtwave_teams_v5') // Reset teams too
           return initialIncidents
         }
         return parsed
@@ -443,18 +488,18 @@ function App() {
     return initialIncidents
   })
   const [teams, setTeams] = useState(() => {
-    const saved = localStorage.getItem('nxtwave_teams_v4')
-    if (!localStorage.getItem('nxtwave_incidents_v4')) {
-      localStorage.removeItem('nxtwave_teams_v4')
+    const saved = localStorage.getItem('nxtwave_teams_v5')
+    if (!localStorage.getItem('nxtwave_incidents_v5')) {
+      localStorage.removeItem('nxtwave_teams_v5')
       return initialTeams
     }
     return saved ? JSON.parse(saved) : initialTeams
   })
   const [weatherAlert, setWeatherAlert] = useState(() => {
-    return localStorage.getItem('nxtwave_weather_v4') || 'Green'
+    return localStorage.getItem('nxtwave_weather_v5') || 'Green'
   })
   const [offlineQueue, setOfflineQueue] = useState(() => {
-    const saved = localStorage.getItem('nxtwave_offline_queue_v4')
+    const saved = localStorage.getItem('nxtwave_offline_queue_v5')
     return saved ? JSON.parse(saved) : []
   })
   const [sensors] = useState(initialSensors)
@@ -499,19 +544,19 @@ function App() {
 
   // Save State to LocalStorage on updates
   useEffect(() => {
-    localStorage.setItem('nxtwave_incidents_v4', JSON.stringify(incidents))
+    localStorage.setItem('nxtwave_incidents_v5', JSON.stringify(incidents))
   }, [incidents])
 
   useEffect(() => {
-    localStorage.setItem('nxtwave_teams_v4', JSON.stringify(teams))
+    localStorage.setItem('nxtwave_teams_v5', JSON.stringify(teams))
   }, [teams])
 
   useEffect(() => {
-    localStorage.setItem('nxtwave_weather_v4', weatherAlert)
+    localStorage.setItem('nxtwave_weather_v5', weatherAlert)
   }, [weatherAlert])
 
   useEffect(() => {
-    localStorage.setItem('nxtwave_offline_queue_v4', JSON.stringify(offlineQueue))
+    localStorage.setItem('nxtwave_offline_queue_v5', JSON.stringify(offlineQueue))
   }, [offlineQueue])
 
   useEffect(() => {
@@ -553,6 +598,10 @@ function App() {
       prevWeatherRef.current = weatherAlert
     }
   }, [weatherAlert])
+
+  useEffect(() => {
+    setOperatorAuditChecked(false)
+  }, [selectedId])
 
   // Helper: Log Developer and Database Telemetry
   const logDev = (message, type = 'system') => {
@@ -705,6 +754,11 @@ function App() {
   // Dispatch approval
   const approveResponse = () => {
     if (!selected) return
+
+    if (selected.score < 75 && selected.status === 'Awaiting approval' && !operatorAuditChecked) {
+      showNotification('Low AI confidence. Operator audit verification required.', 'warning')
+      return
+    }
 
     setIncidents((current) => current.map((incident) => (
       incident.id === selected.id
@@ -948,6 +1002,14 @@ function App() {
       showNotification('Please enter a description of the emergency.', 'warning')
       return
     }
+
+    const now = Date.now()
+    if (now - lastSubmitTime < 20000) {
+      const secondsLeft = Math.ceil((20000 - (now - lastSubmitTime)) / 1000)
+      showNotification(`Spam protection active. Wait ${secondsLeft}s before filing another report.`, 'warning')
+      return
+    }
+    setLastSubmitTime(now)
 
     const payload = { ...citizenForm }
 
@@ -1563,6 +1625,20 @@ function App() {
                 </div>
 
                 <div className="dispatch-action-block">
+                  {selected.score < 75 && selected.status === 'Awaiting approval' && (
+                    <div style={{ marginBottom: '15px', background: 'rgba(233, 162, 86, 0.08)', border: '1px solid rgba(233, 162, 86, 0.2)', padding: '12px', borderRadius: '8px' }}>
+                      <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer', fontSize: '10px', color: '#edf1ef', lineHeight: '1.4' }}>
+                        <input 
+                          type="checkbox" 
+                          checked={operatorAuditChecked} 
+                          onChange={(e) => setOperatorAuditChecked(e.target.checked)}
+                          style={{ marginTop: '2px' }}
+                        />
+                        <span>⚠️ Low AI Confidence alert (&lt; 75%). I have audited route safety & dispatcher capabilities.</span>
+                      </label>
+                    </div>
+                  )}
+
                   <button 
                     className="approve-button" 
                     disabled={selected.status === 'Team dispatched'} 
