@@ -672,4 +672,107 @@ nav { display: grid; gap: 5px; }.nav-item { border: 0; text-align: left; padding
 .console-log-row[style*="TELECOM"] { color: #a4cef2; }
 .console-log-row[style*="SECURITY"] { color: #fca69f; }
 
+/* PREMIUM UX/UI UPGRADES */
 
+/* Custom thin scrollbar layout for dashboard */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(114, 221, 173, 0.25);
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(114, 221, 173, 0.45);
+}
+
+/* Metric card hover glows */
+.metric {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  border: 1px solid rgba(114, 221, 173, 0.05) !important;
+}
+.metric:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+  border-color: rgba(114, 221, 173, 0.25) !important;
+  background: rgba(255, 255, 255, 0.02) !important;
+}
+
+/* Interactive incident lists hover transitions */
+.incident-row {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+.incident-row:hover {
+  transform: translateX(4px);
+  background: rgba(114, 221, 173, 0.04) !important;
+}
+
+/* Slide in keyframe animations */
+@keyframes slideInUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Premium Floating Toast Notifications */
+.toast-notification {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: rgba(18, 30, 27, 0.96) !important;
+  backdrop-filter: blur(8px);
+  border: 1px solid #72ddad !important;
+  box-shadow: 0 10px 30px rgba(114, 221, 173, 0.2) !important;
+  z-index: 100000;
+  border-radius: 12px !important;
+  color: #edf1ef !important;
+  font-family: Manrope, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  animation: slideInUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.toast-notification.success {
+  border-color: #37ae79 !important;
+  box-shadow: 0 10px 30px rgba(55, 174, 121, 0.25) !important;
+}
+.toast-notification.warning {
+  border-color: #e9a256 !important;
+  box-shadow: 0 10px 30px rgba(233, 162, 86, 0.25) !important;
+}
+
+/* Glassmorphism details for citizen status tracker progress bar */
+.citizen-status-card {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  border: 1px solid rgba(114, 221, 173, 0.08) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02) !important;
+}
+.citizen-status-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(114, 221, 173, 0.05) !important;
+  border-color: rgba(114, 221, 173, 0.2) !important;
+}
+
+/* Pulsing text glow effect */
+@keyframes textUrgent {
+  0% { text-shadow: 0 0 4px rgba(233, 100, 85, 0.2); }
+  100% { text-shadow: 0 0 10px rgba(233, 100, 85, 0.6); }
+}
+.red-alert {
+  animation: textUrgent 1.5s infinite alternate;
+}
