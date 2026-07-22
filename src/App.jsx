@@ -411,14 +411,14 @@ function App() {
 
   // State Management with LocalStorage persistence
   const [incidents, setIncidents] = useState(() => {
-    const saved = localStorage.getItem('nxtwave_incidents')
+    const saved = localStorage.getItem('nxtwave_incidents_v2')
     if (saved) {
       try {
         const parsed = JSON.parse(saved)
         // If it's the old schema (missing lat/lng), ignore cached data
         if (parsed.length > 0 && parsed[0].lat === undefined) {
-          localStorage.removeItem('nxtwave_incidents')
-          localStorage.removeItem('nxtwave_teams') // Reset teams too
+          localStorage.removeItem('nxtwave_incidents_v2')
+          localStorage.removeItem('nxtwave_teams_v2') // Reset teams too
           return initialIncidents
         }
         return parsed
@@ -429,18 +429,18 @@ function App() {
     return initialIncidents
   })
   const [teams, setTeams] = useState(() => {
-    const saved = localStorage.getItem('nxtwave_teams')
-    if (!localStorage.getItem('nxtwave_incidents')) {
-      localStorage.removeItem('nxtwave_teams')
+    const saved = localStorage.getItem('nxtwave_teams_v2')
+    if (!localStorage.getItem('nxtwave_incidents_v2')) {
+      localStorage.removeItem('nxtwave_teams_v2')
       return initialTeams
     }
     return saved ? JSON.parse(saved) : initialTeams
   })
   const [weatherAlert, setWeatherAlert] = useState(() => {
-    return localStorage.getItem('nxtwave_weather') || 'Green'
+    return localStorage.getItem('nxtwave_weather_v2') || 'Green'
   })
   const [offlineQueue, setOfflineQueue] = useState(() => {
-    const saved = localStorage.getItem('nxtwave_offline_queue')
+    const saved = localStorage.getItem('nxtwave_offline_queue_v2')
     return saved ? JSON.parse(saved) : []
   })
   const [sensors] = useState(initialSensors)
@@ -485,19 +485,19 @@ function App() {
 
   // Save State to LocalStorage on updates
   useEffect(() => {
-    localStorage.setItem('nxtwave_incidents', JSON.stringify(incidents))
+    localStorage.setItem('nxtwave_incidents_v2', JSON.stringify(incidents))
   }, [incidents])
 
   useEffect(() => {
-    localStorage.setItem('nxtwave_teams', JSON.stringify(teams))
+    localStorage.setItem('nxtwave_teams_v2', JSON.stringify(teams))
   }, [teams])
 
   useEffect(() => {
-    localStorage.setItem('nxtwave_weather', weatherAlert)
+    localStorage.setItem('nxtwave_weather_v2', weatherAlert)
   }, [weatherAlert])
 
   useEffect(() => {
-    localStorage.setItem('nxtwave_offline_queue', JSON.stringify(offlineQueue))
+    localStorage.setItem('nxtwave_offline_queue_v2', JSON.stringify(offlineQueue))
   }, [offlineQueue])
 
   useEffect(() => {
