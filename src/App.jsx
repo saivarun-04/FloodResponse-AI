@@ -839,13 +839,52 @@ function App() {
 
     // Simulate Citizen reply
     setTimeout(() => {
-      let replyText = "Okay, standing by. Please hurry."
-      if (selected.type.toLowerCase().includes("wire")) {
-        replyText = "Understood. We are staying clear of the water and sparking wire. Keep us updated when the team arrives."
-      } else if (selected.type.toLowerCase().includes("stranded")) {
-        replyText = "Yes, we are on the second floor balcony. Water level is still rising slowly but we are safe for now."
-      } else if (selected.type.toLowerCase().includes("drain")) {
-        replyText = "Thanks. We will let you know if the blockage gets worse or causes road flooding."
+      const msg = operatorMsg.text.toLowerCase()
+      let replyText = "Okay, standing by. Please keep us updated."
+
+      // 1. Check for keyword matches in operator message
+      if (msg.includes("hi") || msg.includes("hello") || msg.includes("hey") || msg.includes("anyone there")) {
+        replyText = `Hello operator, we are stranded here at ${selected.location}. Is help on the way?`
+      } else if (msg.includes("where") || msg.includes("location") || msg.includes("landmark") || msg.includes("address")) {
+        replyText = `We are right near the landmark at ${selected.location}. The water level is up to our knees.`
+      } else if (msg.includes("stay") || msg.includes("clear") || msg.includes("safe") || msg.includes("calm") || msg.includes("indoor") || msg.includes("climb")) {
+        replyText = `Understood. We are staying calm, keeping clear of the hazard, and waiting for the crew.`
+      } else if (msg.includes("dispatch") || msg.includes("coming") || msg.includes("en route") || msg.includes("eta") || msg.includes("sent")) {
+        replyText = `Thank you for the update! We will keep an eye out for the flashing lights.`
+      } else {
+        // 2. Fallback to hazard-specific rotation to prevent repetitive messages
+        const historyLength = selected.smsHistory ? selected.smsHistory.length : 0
+        const index = Math.floor(historyLength / 2) % 3 // Rotates between 0, 1, 2 for each exchange
+
+        if (selected.type.toLowerCase().includes("wire")) {
+          const wireReplies = [
+            "We are staying clear of the sparking wire. It's making a loud buzzing sound in the water.",
+            "Understood. The police haven't blocked the road yet, please alert the power grid team.",
+            "Standing by. We have warned other commuters to not walk through the waterlogged street."
+          ]
+          replyText = wireReplies[index]
+        } else if (selected.type.toLowerCase().includes("stranded")) {
+          const strandedReplies = [
+            "We are safe on the upper balcony. Cellar is completely submerged.",
+            "Water is about 3 feet deep. Our grandparents are safe but we have no drinking water.",
+            "Okay, we will wait here. Please tell the rescue team to bring a high-ground vehicle."
+          ]
+          replyText = strandedReplies[index]
+        } else if (selected.type.toLowerCase().includes("drain")) {
+          const drainReplies = [
+            "Thanks. The municipal nala is completely clogged with plastic bottles.",
+            "The water is starting to overflow onto the pavement. Hopefully the pumps arrive soon.",
+            "Understood. We will keep you updated if the blockage causes more flooding."
+          ]
+          replyText = drainReplies[index]
+        } else {
+          const generalReplies = [
+            "Understood, standing by for updates.",
+            "The rain has slowed down slightly, but the waterlogging is still deep.",
+            "Thank you for coordinate tracking. We are keeping safe."
+          ]
+          replyText = generalReplies[index]
+        }
       }
 
       const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
