@@ -308,23 +308,7 @@ function App() {
   const chatBottomRef = useRef(null)
   const smsBottomRef = useRef(null)
 
-  useEffect(() => {
-    if (chatBottomRef.current) {
-      const container = chatBottomRef.current.parentElement
-      if (container) {
-        container.scrollTop = container.scrollHeight
-      }
-    }
-  }, [aiChatMessages])
 
-  useEffect(() => {
-    if (smsBottomRef.current) {
-      const container = smsBottomRef.current.parentElement
-      if (container) {
-        container.scrollTop = container.scrollHeight
-      }
-    }
-  }, [selected?.smsHistory])
 
   // Authentication Role Gateways
   const [currentUserRole, setCurrentUserRole] = useState(() => {
@@ -524,6 +508,24 @@ function App() {
   const selected = incidents.find((incident) => incident.id === selectedId) ?? incidents[0]
   const activeCount = incidents.filter((incident) => incident.status === 'Awaiting approval').length
   const approvedCount = incidents.filter((incident) => incident.status === 'Team dispatched').length
+
+  useEffect(() => {
+    if (chatBottomRef.current) {
+      const container = chatBottomRef.current.parentElement
+      if (container) {
+        container.scrollTop = container.scrollHeight
+      }
+    }
+  }, [aiChatMessages])
+
+  useEffect(() => {
+    if (smsBottomRef.current) {
+      const container = smsBottomRef.current.parentElement
+      if (container) {
+        container.scrollTop = container.scrollHeight
+      }
+    }
+  }, [selected?.smsHistory])
 
   const sortedIncidents = useMemo(
     () => [...incidents].sort((a, b) => b.score - a.score),
