@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from 'react'
-import { processCitizenReport, getAIExplanation, simulateLLMParse, LANDMARKS } from './triageEngine'
+import { processCitizenReport, simulateLLMParse, LANDMARKS } from './triageEngine'
 
 const initialIncidents = [
   {
@@ -452,7 +452,6 @@ function MapContainer({ incidents, selectedId, setSelectedId, dispatchAnimations
 
 function App() {
   // Auto-scroll refs
-  const chatBottomRef = useRef(null)
   const smsBottomRef = useRef(null)
 
 
@@ -511,12 +510,10 @@ function App() {
   const [notification, setNotification] = useState(null)
 
   // Developer Logger & Retractable Drawer state
-  const [devConsoleOpen, setDevConsoleOpen] = useState(true)
+  const [devConsoleOpen, setDevConsoleOpen] = useState(false)
   const [devLogs, setDevLogs] = useState([])
 
-  // AI Assistant Explainer Chat Drawer state
-  const [aiExplainOpen, setAiExplainOpen] = useState(false)
-  const [aiChatMessages, setAiChatMessages] = useState([])
+
 
   // Preemption / Redirect state
   const [preemptTargetIncidentId, setPreemptTargetIncidentId] = useState('')
@@ -694,14 +691,7 @@ function App() {
   const activeCount = incidents.filter((incident) => incident.status === 'Awaiting approval').length
   const approvedCount = incidents.filter((incident) => incident.status === 'Team dispatched').length
 
-  useEffect(() => {
-    if (chatBottomRef.current) {
-      const container = chatBottomRef.current.parentElement
-      if (container) {
-        container.scrollTop = container.scrollHeight
-      }
-    }
-  }, [aiChatMessages])
+
 
   useEffect(() => {
     if (smsBottomRef.current) {
@@ -1085,33 +1075,7 @@ function App() {
     }
   }
 
-  // AI Chat Explainer triggers
-  const openExplainer = () => {
-    const explanation = getAIExplanation(selected)
-    setAiChatMessages([
-      { sender: 'AI', text: `Hi Ravi. I can explain why ${selected.id} is prioritized as "${selected.priority}" (Score: ${selected.score}).` },
-      { sender: 'AI', text: `Base Hazard Level: ${explanation.baseHazardRating}` },
-      ...explanation.rulesTriggered.map(rule => ({ sender: 'AI', text: rule })),
-      { sender: 'AI', text: `Suggested dispatch option: ${selected.team} with ETA of ${selected.eta}. Would you like to override any parameter?` }
-    ])
-    setAiExplainOpen(true)
-  }
 
-  const handleAIAsk = (question) => {
-    setAiChatMessages(prev => [...prev, { sender: 'Operator', text: question }])
-    
-    setTimeout(() => {
-      let response = ""
-      if (question.includes("route")) {
-        response = `The route "${selected.route}" was calculated avoiding local waterlogging indexes on Ameerpet Metro service lanes, maintaining safety for the vehicle response.`
-      } else if (question.includes("team")) {
-        response = `${selected.team} matches the specialized equipment needed for "${selected.type}". Altering the team might affect dispatch efficiency.`
-      } else {
-        response = `This triage uses dynamic multipliers including local sensor levels, live reports, and weather overrides. Operators can override any recommendation using the select panels.`
-      }
-      setAiChatMessages(prev => [...prev, { sender: 'AI', text: response }])
-    }, 600)
-  }
 
 
 
@@ -1480,10 +1444,9 @@ function App() {
               <div className="incident-panel panel">
                 <div className="panel-heading">
                   <div>
-                    <p className="eyebrow">AI PRIORITY QUEUE</p>
-                    <h2>Incidents needing a decision</h2>
+                    <p className="eyebrow">ACTIVE INCIDENTS</p>
+                    <h2>Triage & Dispatch Queue</h2>
                   </div>
-                  <button className="text-button" onClick={openExplainer}>Explain ranking</button>
                 </div>
                 <p className="panel-intro">Each ranking is explainable. AI recommends; the control-room officer decides.</p>
                 
@@ -1494,7 +1457,6 @@ function App() {
                       key={incident.id} 
                       onClick={() => {
                         setSelectedId(incident.id)
-                        setAiExplainOpen(false)
                       }}
                     >
                       <div className="incident-icon">{incident.icon}</div>
@@ -1701,28 +1663,7 @@ function App() {
                 </div>
               )}
 
-              {/* Explain with AI chat drawer */}
-              {aiExplainOpen && (
-                <div className="ai-chat-drawer">
-                  <div className="drawer-header">
-                    <h4>💬 AI Decision Assistant</h4>
-                    <button className="close-btn" onClick={() => setAiExplainOpen(false)}>×</button>
-                  </div>
-                  <div className="chat-messages">
-                    {aiChatMessages.map((m, idx) => (
-                      <div key={idx} className={`chat-bubble ${m.sender.toLowerCase()}`}>
-                        <strong>{m.sender}:</strong> {m.text}
-                      </div>
-                    ))}
-                    <div ref={chatBottomRef} />
-                  </div>
-                  <div className="drawer-suggested-questions">
-                    <button onClick={() => handleAIAsk("Why was this route selected?")}>Why was this route selected?</button>
-                    <button onClick={() => handleAIAsk("Why recommends this specific response team?")}>Why recommends this team?</button>
-                    <button onClick={() => handleAIAsk("Show raw telemetry details.")}>Show raw telemetry data</button>
-                  </div>
-                </div>
-              )}
+
 
               {/* Two-Way Citizen Chat Log Console */}
               <div className="audit-trail-section citizen-chat-console" style={{ borderTop: '1px solid #edf1ef', marginTop: '18px', paddingTop: '15px' }}>
