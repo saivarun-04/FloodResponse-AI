@@ -304,10 +304,10 @@ function MapContainer({ incidents, selectedId, setSelectedId, dispatchAnimations
       leafletMapInstance.current = L.map(mapRef.current, {
         center: [17.425, 78.465], // Hyderabad Central
         zoom: 11,
-        zoomControl: !isMini,
-        dragging: !isMini,
-        scrollWheelZoom: !isMini,
-        touchZoom: !isMini
+        zoomControl: true,
+        dragging: true,
+        scrollWheelZoom: true,
+        touchZoom: true
       })
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
