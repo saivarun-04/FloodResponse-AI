@@ -40,7 +40,12 @@ nav { display: grid; gap: 5px; }.nav-item { border: 0; text-align: left; padding
   .sidebar nav {
     display: flex !important;
     flex-direction: row !important;
+    flex-wrap: wrap !important;
     gap: 8px !important;
+  }
+  .brand {
+    font-size: 16px !important;
+    padding: 0 !important;
   }
   .nav-item {
     padding: 6px 10px !important;
