@@ -382,8 +382,12 @@ function MapContainer({ incidents, selectedId, setSelectedId, dispatchAnimations
 
       if (inc.id === selectedId) {
         marker.bindPopup(`<b>${inc.id}: ${inc.type}</b><br/>${inc.location}<br/>Priority: ${inc.priority}`, { closeButton: false }).openPopup()
-        if (!isMini) {
-          map.setView([lat, lng], 15, { animate: true })
+        const anim = dispatchAnimations[selectedId]
+        if (anim && anim.progress < 100) {
+          const bounds = L.latLngBounds([[17.4357, 78.4446], [lat, lng]])
+          map.fitBounds(bounds, { padding: [40, 40], animate: true })
+        } else {
+          map.setView([lat, lng], isMini ? 13 : 15, { animate: true })
         }
       }
     })
