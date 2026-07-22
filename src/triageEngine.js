@@ -5,7 +5,13 @@ export const LANDMARKS = {
   "Balkampet Main Road": { lat: 17.4410, lng: 78.4470 },
   "Ameerpet Metro approach": { lat: 17.4357, lng: 78.4446 },
   "Balkampet Lane 4": { lat: 17.4425, lng: 78.4485 },
-  "Srinivasa Nagar": { lat: 17.4390, lng: 78.4412 }
+  "Srinivasa Nagar": { lat: 17.4390, lng: 78.4412 },
+  "Satyam Theatre Road": { lat: 17.4385, lng: 78.4440 },
+  "Ameerpet Cross Roads": { lat: 17.4372, lng: 78.4452 },
+  "Dharam Karam Road": { lat: 17.4412, lng: 78.4428 },
+  "Leelanagar, Lane 2": { lat: 17.4348, lng: 78.4490 },
+  "Sanjeeva Reddy Nagar (SR Nagar)": { lat: 17.4445, lng: 78.4410 },
+  "Ameerpet Metro Station Parking": { lat: 17.4354, lng: 78.4430 }
 };
 
 // Base scoring for hazard types

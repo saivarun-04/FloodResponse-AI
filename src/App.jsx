@@ -304,6 +304,28 @@ function MapContainer({ incidents, selectedId, setSelectedId, dispatchAnimations
 }
 
 function App() {
+  // Auto-scroll refs
+  const chatBottomRef = useRef(null)
+  const smsBottomRef = useRef(null)
+
+  useEffect(() => {
+    if (chatBottomRef.current) {
+      const container = chatBottomRef.current.parentElement
+      if (container) {
+        container.scrollTop = container.scrollHeight
+      }
+    }
+  }, [aiChatMessages])
+
+  useEffect(() => {
+    if (smsBottomRef.current) {
+      const container = smsBottomRef.current.parentElement
+      if (container) {
+        container.scrollTop = container.scrollHeight
+      }
+    }
+  }, [selected?.smsHistory])
+
   // Authentication Role Gateways
   const [currentUserRole, setCurrentUserRole] = useState(() => {
     return localStorage.getItem('nxtwave_role') || null
@@ -1439,6 +1461,7 @@ function App() {
                         <strong>{m.sender}:</strong> {m.text}
                       </div>
                     ))}
+                    <div ref={chatBottomRef} />
                   </div>
                   <div className="drawer-suggested-questions">
                     <button onClick={() => handleAIAsk("Why was this route selected?")}>Why was this route selected?</button>
@@ -1462,6 +1485,7 @@ function App() {
                   {(!selected.smsHistory || selected.smsHistory.length === 0) && (
                     <p style={{ color: '#7a8683', fontStyle: 'italic', fontSize: '10px', textAlign: 'center', margin: 'auto' }}>No message history. Initiate chat below.</p>
                   )}
+                  <div ref={smsBottomRef} />
                 </div>
 
                 <form onSubmit={handleSendSms} style={{ display: 'flex', gap: '10px' }}>
@@ -1770,7 +1794,7 @@ function App() {
           <header 
             className="drawer-bar" 
             onClick={() => setDevConsoleOpen(!devConsoleOpen)} 
-            style={{ padding: '12px 18px', background: '#121817', display: 'flex', justifycontent: 'space-between', alignItems: 'center', cursor: 'pointer', borderBottom: devConsoleOpen ? '1px solid #2d3c39' : 'none' }}
+            style={{ padding: '12px 18px', background: '#121817', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', borderBottom: devConsoleOpen ? '1px solid #2d3c39' : 'none' }}
           >
             <strong style={{ fontSize: '11px', fontFamily: 'DM Mono', letterSpacing: '0.8px', flex: 1 }}>⚙️ DEVELOPER SYSTEM TELEMETRY LOGGER (SQL & AI)</strong>
             <button style={{ background: 'none', border: 0, color: '#72ddad', cursor: 'pointer', fontSize: '11px' }}>
