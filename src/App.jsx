@@ -21,7 +21,11 @@ const initialIncidents = [
     lng: 78.4612,
     linkedReports: [
       { id: 'REP-001', name: 'Zafar', phone: '9848011223', description: 'Snapped wire sparkling in water on Bandlaguda main road.', timestamp: '12 min ago' },
-      { id: 'REP-002', name: 'Afroz', phone: '9000122334', description: 'People getting shocks stepping out of autos. Waterlogged.', timestamp: '10 min ago' }
+      { id: 'REP-002', name: 'Afroz', phone: '9000122334', description: 'People getting shocks stepping out of autos. Waterlogged.', timestamp: '10 min ago' },
+      { id: 'REP-003', name: 'Imran Khan', phone: '9123450001', description: 'Live wire fell down. Road flooded.', timestamp: '9 min ago' },
+      { id: 'REP-004', name: 'Sameer', phone: '9866012233', description: 'A snapped power line is active in the water log.', timestamp: '7 min ago' },
+      { id: 'REP-005', name: 'Md. Ali', phone: '9502011224', description: 'Please shut down power grid in Bandlaguda. Sparks everywhere.', timestamp: '6 min ago' },
+      { id: 'REP-006', name: 'Yasmin B.', phone: '9010044552', description: 'Wire sparking near the bus shelter. Road under water.', timestamp: '4 min ago' }
     ],
     smsHistory: [
       { sender: 'Citizen', text: 'Live snapping wire fell in flood water! We are trapped in auto.', time: '10 min ago' }
@@ -45,7 +49,10 @@ const initialIncidents = [
     lat: 17.5011,
     lng: 78.5029,
     linkedReports: [
-      { id: 'REP-003', name: 'Sandeep', phone: '9111222333', description: 'Tree branch fell on car and snapped the power cable. Sparkling.', timestamp: '15 min ago' }
+      { id: 'REP-007', name: 'Sandeep', phone: '9111222333', description: 'Tree branch fell on car and snapped the power cable. Sparkling.', timestamp: '15 min ago' },
+      { id: 'REP-008', name: 'Preethika', phone: '9122333444', description: 'Live wire snapped and fell on tree branches above cars.', timestamp: '12 min ago' },
+      { id: 'REP-009', name: 'Latha C.', phone: '9440122883', description: 'Branch fell down, snapped power lines are sparking.', timestamp: '8 min ago' },
+      { id: 'REP-010', name: 'Srinivas', phone: '9000511223', description: 'Heavy sparkling in Telecom Colony due to fallen tree branch on wire.', timestamp: '6 min ago' }
     ],
     smsHistory: [
       { sender: 'Citizen', text: 'Wire is touching our car door. We cannot step out safely.', time: '15 min ago' }
@@ -69,7 +76,11 @@ const initialIncidents = [
     lat: 17.4445,
     lng: 78.4410,
     linkedReports: [
-      { id: 'REP-004', name: 'Rajesh V.', phone: '9123456789', description: 'Basement fully flooded under metro line. Residents stuck.', timestamp: '25 min ago' }
+      { id: 'REP-011', name: 'Rajesh V.', phone: '9123456789', description: 'Basement fully flooded under metro line. Residents stuck.', timestamp: '25 min ago' },
+      { id: 'REP-012', name: 'Kumar', phone: '9848033445', description: 'Water level entering ground floor. 3 feet deep.', timestamp: '20 min ago' },
+      { id: 'REP-013', name: 'Divya', phone: '9502044883', description: 'Elderly grandparents trapped in cellar house.', timestamp: '17 min ago' },
+      { id: 'REP-014', name: 'Venkat', phone: '9988552211', description: 'Stranded on SR Nagar street cellar. Water level rising.', timestamp: '12 min ago' },
+      { id: 'REP-015', name: 'Laxmi', phone: '9441223344', description: 'Basement flooded, no exit route.', timestamp: '10 min ago' }
     ],
     smsHistory: []
   },
@@ -91,7 +102,9 @@ const initialIncidents = [
     lat: 17.4385,
     lng: 78.4440,
     linkedReports: [
-      { id: 'REP-005', name: 'Vivek S.', phone: '9440122334', description: 'Garbage choking stormwater nala behind Maitrivanam.', timestamp: '35 min ago' }
+      { id: 'REP-016', name: 'Vivek S.', phone: '9440122334', description: 'Garbage choking stormwater nala behind Maitrivanam.', timestamp: '35 min ago' },
+      { id: 'REP-017', name: 'Kiran P.', phone: '9849011223', description: 'Stormwater nala overflowing on main road.', timestamp: '30 min ago' },
+      { id: 'REP-018', name: 'Ramesh K.', phone: '9900112233', description: 'Drainage nala blocked near Krishna Kanth Park.', timestamp: '24 min ago' }
     ],
     smsHistory: []
   },
@@ -113,7 +126,8 @@ const initialIncidents = [
     lat: 17.4357,
     lng: 78.4446,
     linkedReports: [
-      { id: 'REP-006', name: 'David L.', phone: '9222333444', description: 'Water level rising quickly in metro approach lanes.', timestamp: '45 min ago' }
+      { id: 'REP-019', name: 'David L.', phone: '9222333444', description: 'Water level rising quickly in metro approach lanes.', timestamp: '45 min ago' },
+      { id: 'REP-020', name: 'Suresh', phone: '9885011223', description: 'Metro station parking cellar flooded, bikes submerged.', timestamp: '38 min ago' }
     ],
     smsHistory: []
   },
@@ -135,7 +149,8 @@ const initialIncidents = [
     lat: 17.4425,
     lng: 78.4485,
     linkedReports: [
-      { id: 'REP-007', name: 'Pramod', phone: '9333444555', description: 'Drainage water entering lane 4.', timestamp: '1 hr ago' }
+      { id: 'REP-021', name: 'Pramod', phone: '9333444555', description: 'Drainage water entering lane 4.', timestamp: '1 hr ago' },
+      { id: 'REP-022', name: 'Hari', phone: '9123412345', description: 'Blocked sewage backflow on lane 4.', timestamp: '52 min ago' }
     ],
     smsHistory: []
   },
@@ -157,7 +172,7 @@ const initialIncidents = [
     lat: 17.4325,
     lng: 78.4465,
     linkedReports: [
-      { id: 'REP-008', name: 'Gopal K.', phone: '9444555666', description: 'Water build up on lane 3.', timestamp: '1.2 hrs ago' }
+      { id: 'REP-023', name: 'Gopal K.', phone: '9444555666', description: 'Water build up on lane 3.', timestamp: '1.2 hrs ago' }
     ],
     smsHistory: []
   },
@@ -179,7 +194,9 @@ const initialIncidents = [
     lat: 17.4385,
     lng: 78.4440,
     linkedReports: [
-      { id: 'REP-009', name: 'Naresh', phone: '9555666777', description: 'Cellar shops completely flooded.', timestamp: '2 hrs ago' }
+      { id: 'REP-024', name: 'Naresh', phone: '9555666777', description: 'Cellar shops completely flooded.', timestamp: '2 hrs ago' },
+      { id: 'REP-025', name: 'Santosh', phone: '9848012356', description: 'Ground floor shops under water near Satyam theatre.', timestamp: '1.8 hrs ago' },
+      { id: 'REP-026', name: 'Raju', phone: '9000123999', description: 'Severe logging, shopkeepers stranded.', timestamp: '1.5 hrs ago' }
     ],
     smsHistory: []
   }
@@ -408,14 +425,14 @@ function App() {
 
   // State Management with LocalStorage persistence
   const [incidents, setIncidents] = useState(() => {
-    const saved = localStorage.getItem('nxtwave_incidents_v3')
+    const saved = localStorage.getItem('nxtwave_incidents_v4')
     if (saved) {
       try {
         const parsed = JSON.parse(saved)
         // If it's the old schema (missing lat/lng), ignore cached data
         if (parsed.length > 0 && parsed[0].lat === undefined) {
-          localStorage.removeItem('nxtwave_incidents_v3')
-          localStorage.removeItem('nxtwave_teams_v3') // Reset teams too
+          localStorage.removeItem('nxtwave_incidents_v4')
+          localStorage.removeItem('nxtwave_teams_v4') // Reset teams too
           return initialIncidents
         }
         return parsed
@@ -426,18 +443,18 @@ function App() {
     return initialIncidents
   })
   const [teams, setTeams] = useState(() => {
-    const saved = localStorage.getItem('nxtwave_teams_v3')
-    if (!localStorage.getItem('nxtwave_incidents_v3')) {
-      localStorage.removeItem('nxtwave_teams_v3')
+    const saved = localStorage.getItem('nxtwave_teams_v4')
+    if (!localStorage.getItem('nxtwave_incidents_v4')) {
+      localStorage.removeItem('nxtwave_teams_v4')
       return initialTeams
     }
     return saved ? JSON.parse(saved) : initialTeams
   })
   const [weatherAlert, setWeatherAlert] = useState(() => {
-    return localStorage.getItem('nxtwave_weather_v3') || 'Green'
+    return localStorage.getItem('nxtwave_weather_v4') || 'Green'
   })
   const [offlineQueue, setOfflineQueue] = useState(() => {
-    const saved = localStorage.getItem('nxtwave_offline_queue_v3')
+    const saved = localStorage.getItem('nxtwave_offline_queue_v4')
     return saved ? JSON.parse(saved) : []
   })
   const [sensors] = useState(initialSensors)
@@ -482,19 +499,19 @@ function App() {
 
   // Save State to LocalStorage on updates
   useEffect(() => {
-    localStorage.setItem('nxtwave_incidents_v3', JSON.stringify(incidents))
+    localStorage.setItem('nxtwave_incidents_v4', JSON.stringify(incidents))
   }, [incidents])
 
   useEffect(() => {
-    localStorage.setItem('nxtwave_teams_v3', JSON.stringify(teams))
+    localStorage.setItem('nxtwave_teams_v4', JSON.stringify(teams))
   }, [teams])
 
   useEffect(() => {
-    localStorage.setItem('nxtwave_weather_v3', weatherAlert)
+    localStorage.setItem('nxtwave_weather_v4', weatherAlert)
   }, [weatherAlert])
 
   useEffect(() => {
-    localStorage.setItem('nxtwave_offline_queue_v3', JSON.stringify(offlineQueue))
+    localStorage.setItem('nxtwave_offline_queue_v4', JSON.stringify(offlineQueue))
   }, [offlineQueue])
 
   useEffect(() => {
