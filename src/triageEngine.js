@@ -1,11 +1,11 @@
 // Landmark coordinates for geofencing and duplicate checks
 export const LANDMARKS = {
-  "Maitrivanam junction, Ameerpet": { x: 66, y: 29 },
-  "Buddhanagar, Lane 3": { x: 37, y: 55 },
-  "Balkampet Main Road": { x: 72, y: 70 },
-  "Ameerpet Metro approach": { x: 22, y: 31 },
-  "Balkampet Lane 4": { x: 50, y: 80 },
-  "Srinivasa Nagar": { x: 45, y: 40 }
+  "Maitrivanam junction, Ameerpet": { lat: 17.4368, lng: 78.4439 },
+  "Buddhanagar, Lane 3": { lat: 17.4325, lng: 78.4465 },
+  "Balkampet Main Road": { lat: 17.4410, lng: 78.4470 },
+  "Ameerpet Metro approach": { lat: 17.4357, lng: 78.4446 },
+  "Balkampet Lane 4": { lat: 17.4425, lng: 78.4485 },
+  "Srinivasa Nagar": { lat: 17.4390, lng: 78.4412 }
 };
 
 // Base scoring for hazard types
@@ -153,7 +153,7 @@ export function processCitizenReport(report, existingIncidents, weatherAlertLeve
 
   // 2. Create new incident using AI rules
   const hazardRule = HAZARD_RULES[report.type] || HAZARD_RULES["waterlogging"];
-  const coords = LANDMARKS[report.location] || { x: 40 + Math.random() * 20, y: 40 + Math.random() * 20 };
+  const coords = LANDMARKS[report.location] || { lat: 17.4374 + (Math.random() - 0.5) * 0.01, lng: 78.4482 + (Math.random() - 0.5) * 0.01 };
   
   let aiScore = hazardRule.baseScore;
   const factors = ["Citizen reported"];
@@ -209,8 +209,8 @@ export function processCitizenReport(report, existingIncidents, weatherAlertLeve
     reason: `Reported by citizen: "${report.description}". AI classified hazard severity at base ${hazardRule.baseScore} with multipliers.`,
     factors: factors,
     status: aiScore >= 50 ? "Awaiting approval" : "Needs verification",
-    x: coords.x,
-    y: coords.y,
+    lat: coords.lat,
+    lng: coords.lng,
     linkedReports: [
       {
         id: `REP-${Math.floor(Math.random()*10000)}`,

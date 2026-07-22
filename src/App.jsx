@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import { processCitizenReport, getAIExplanation, simulateLLMParse, LANDMARKS } from './triageEngine'
 
 const initialIncidents = [
@@ -17,8 +17,8 @@ const initialIncidents = [
     reason: 'Live wire in standing water, three matching reports, and an ambulance route is affected.',
     factors: ['Threat to life', '3 corroborating reports', 'Emergency route affected'],
     status: 'Awaiting approval',
-    x: 66,
-    y: 29,
+    lat: 17.4368,
+    lng: 78.4439,
     linkedReports: [
       { id: 'REP-001', name: 'Kiran Kumar', phone: '9876543210', description: 'Sparking wire fell into the water near Maitrivanam.', timestamp: '10 min ago' },
       { id: 'REP-002', name: 'Anitha R.', phone: '9848022338', description: 'Live cable sparking on flooded road.', timestamp: '7 min ago' },
@@ -43,8 +43,8 @@ const initialIncidents = [
     reason: 'Five reports describe two elderly residents unable to leave a flooded ground-floor home.',
     factors: ['Vulnerable residents', '5 corroborating reports', 'Water entering homes'],
     status: 'Awaiting approval',
-    x: 37,
-    y: 55,
+    lat: 17.4325,
+    lng: 78.4465,
     linkedReports: [
       { id: 'REP-004', name: 'Rajesh V.', phone: '9111222333', description: 'Elderly couple stuck on ground floor. Water at 2 feet.', timestamp: '8 min ago' }
     ],
@@ -67,8 +67,8 @@ const initialIncidents = [
     reason: 'Drain cover blockage is worsening waterlogging but no immediate danger to people is reported.',
     factors: ['2 corroborating reports', 'Increasing water depth', 'Main-road impact'],
     status: 'Awaiting approval',
-    x: 72,
-    y: 70,
+    lat: 17.4410,
+    lng: 78.4470,
     linkedReports: [
       { id: 'REP-005', name: 'Mohammad', phone: '9555666777', description: 'Large plastic block in stormwater drain.', timestamp: '13 min ago' }
     ],
@@ -89,8 +89,8 @@ const initialIncidents = [
     reason: 'One report indicates slow traffic. Nearby reports do not yet corroborate a full road blockage.',
     factors: ['Single report', 'Traffic disruption', 'Needs verification'],
     status: 'Needs verification',
-    x: 22,
-    y: 31,
+    lat: 17.4357,
+    lng: 78.4446,
     linkedReports: [
       { id: 'REP-006', name: 'David L.', phone: '9222333444', description: 'Water building up near metro steps.', timestamp: '18 min ago' }
     ],
@@ -110,6 +110,151 @@ const initialSensors = [
   { id: 'SEN-105', landmark: 'Buddhanagar, Lane 3', type: 'Water Flow Valve', value: 78, status: 'WARNING', unit: 'm³/s' },
   { id: 'SEN-108', landmark: 'Balkampet Main Road', type: 'Road Flood Depth', value: 12, status: 'NORMAL', unit: 'cm' }
 ]
+
+// LEAFLET MAP WRAPPER COMPONENT
+function MapContainer({ incidents, selectedId, setSelectedId, dispatchAnimations, mapPriorityFilter, mapStatusFilter, isMini = false }) {
+  const mapRef = useRef(null)
+  const leafletMapInstance = useRef(null)
+  const markersLayerRef = useRef(null)
+  const polylineLayerRef = useRef(null)
+  const vehicleMarkersRef = useRef({})
+
+  // Filter display markers
+  const displayIncidents = useMemo(() => {
+    return incidents.filter(inc => {
+      if (isMini && inc.status === 'Resolved') return false
+      const matchPriority = mapPriorityFilter === 'All' || inc.priority === mapPriorityFilter
+      const matchStatus = mapStatusFilter === 'All' || inc.status === mapStatusFilter
+      return matchPriority && matchStatus
+    })
+  }, [incidents, mapPriorityFilter, mapStatusFilter, isMini])
+
+  // Initialize Map
+  useEffect(() => {
+    if (!mapRef.current || typeof window.L === 'undefined') return
+
+    if (!leafletMapInstance.current) {
+      const L = window.L
+      leafletMapInstance.current = L.map(mapRef.current, {
+        center: [17.4374, 78.4482], // Ameerpet, Hyderabad
+        zoom: 14,
+        zoomControl: !isMini,
+        dragging: !isMini,
+        scrollWheelZoom: !isMini,
+        touchZoom: !isMini
+      })
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(leafletMapInstance.current)
+
+      markersLayerRef.current = L.layerGroup().addTo(leafletMapInstance.current)
+      polylineLayerRef.current = L.layerGroup().addTo(leafletMapInstance.current)
+    }
+
+    return () => {
+      // Clean up instance on unmount
+      if (leafletMapInstance.current && !isMini) {
+        leafletMapInstance.current.remove()
+        leafletMapInstance.current = null
+      }
+    }
+  }, [isMini])
+
+  // Redraw Markers, Polylines and Vehicles
+  useEffect(() => {
+    if (!leafletMapInstance.current || typeof window.L === 'undefined') return
+
+    const L = window.L
+    const map = leafletMapInstance.current
+    const markersLayer = markersLayerRef.current
+    const polylineLayer = polylineLayerRef.current
+
+    markersLayer.clearLayers()
+    polylineLayer.clearLayers()
+
+    // Clean up old vehicle markers
+    Object.keys(vehicleMarkersRef.current).forEach(id => {
+      vehicleMarkersRef.current[id].remove()
+    })
+    vehicleMarkersRef.current = {}
+
+    // Add Incident Pins
+    displayIncidents.forEach(inc => {
+      const color = inc.priority === 'Critical' ? '#e96455' : 
+                    inc.priority === 'High' ? '#e9a256' : 
+                    inc.priority === 'Medium' ? '#d5bc4d' : '#58a998'
+
+      const customIcon = L.divIcon({
+        className: `custom-leaflet-marker ${inc.id === selectedId ? 'selected-leaflet-marker' : ''}`,
+        html: `<div style="background-color: ${color}; width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; display: grid; place-items: center; font-size: 15px; box-shadow: 0 2px 7px rgba(0,0,0,0.3); line-height: 1; text-align: center;">${inc.icon}</div>`,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
+      })
+
+      const marker = L.marker([inc.lat, inc.lng], { icon: customIcon })
+        .addTo(markersLayer)
+        .on('click', () => {
+          setSelectedId(inc.id)
+        })
+
+      if (inc.id === selectedId) {
+        marker.bindPopup(`<b>${inc.id}: ${inc.type}</b><br/>${inc.location}<br/>Priority: ${inc.priority}`, { closeButton: false }).openPopup()
+        if (!isMini) {
+          map.setView([inc.lat, inc.lng], 15, { animate: true })
+        }
+      }
+    })
+
+    // Draw active routes & vehicles
+    Object.keys(dispatchAnimations).forEach(id => {
+      const anim = dispatchAnimations[id]
+      if (anim.progress >= 100) return
+
+      const inc = incidents.find(i => i.id === id)
+      if (!inc) return
+
+      const depot = [17.4357, 78.4446] // Ameerpet Metro
+      const target = [inc.lat, inc.lng]
+
+      // Draw routing dashed line
+      L.polyline([depot, target], {
+        color: '#176f59',
+        weight: 3,
+        opacity: 0.7,
+        dashArray: '6, 6'
+      }).addTo(polylineLayer)
+
+      // Calculate current location along the line
+      const currentLat = depot[0] + ((target[0] - depot[0]) * anim.progress) / 100
+      const currentLng = depot[1] + ((target[1] - depot[1]) * anim.progress) / 100
+
+      const vehicleIcon = L.divIcon({
+        className: 'leaflet-vehicle-icon',
+        html: `<div style="font-size: 20px; text-shadow: 0 1px 4px rgba(0,0,0,0.3); animation: pulsing 1.5s infinite;">🚨</div>`,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+      })
+
+      const vehicleMarker = L.marker([currentLat, currentLng], { icon: vehicleIcon }).addTo(map)
+      vehicleMarkersRef.current[id] = vehicleMarker
+    })
+
+    // Fit Bounds if large view and pins present
+    if (!isMini && displayIncidents.length > 0 && !selectedId) {
+      const bounds = L.latLngBounds(displayIncidents.map(i => [i.lat, i.lng]))
+      map.fitBounds(bounds, { padding: [40, 40] })
+    }
+  }, [displayIncidents, selectedId, dispatchAnimations, isMini, setSelectedId, incidents])
+
+  return (
+    <div 
+      ref={mapRef} 
+      style={{ width: '100%', height: '100%', position: 'absolute', inset: 0, borderRadius: '8px', zIndex: 1 }} 
+    />
+  )
+}
 
 function App() {
   // Authentication Role Gateways
@@ -353,8 +498,8 @@ function App() {
       [selected.id]: {
         x: 50,
         y: 50,
-        targetX: selected.x,
-        targetY: selected.y,
+        targetX: selected.lat,
+        targetY: selected.lng,
         progress: 0,
         teamName: selected.team,
         icon: selected.icon
@@ -426,10 +571,10 @@ function App() {
     setDispatchAnimations(prev => ({
       ...prev,
       [preemptTargetIncidentId]: {
-        x: selected.x,
-        y: selected.y,
-        targetX: targetIncident.x,
-        targetY: targetIncident.y,
+        x: selected.lat,
+        y: selected.lng,
+        targetX: targetIncident.lat,
+        targetY: targetIncident.lng,
         progress: 0,
         teamName: selected.team,
         icon: targetIncident.icon
@@ -642,14 +787,7 @@ function App() {
     }, 600)
   }
 
-  // Filtered incidents for Map View
-  const filteredIncidents = useMemo(() => {
-    return incidents.filter(inc => {
-      const matchPriority = mapPriorityFilter === 'All' || inc.priority === mapPriorityFilter
-      const matchStatus = mapStatusFilter === 'All' || inc.status === mapStatusFilter
-      return matchPriority && matchStatus
-    })
-  }, [incidents, mapPriorityFilter, mapStatusFilter])
+
 
   // Reroutable options (incidents needing response)
   const preemptTargetOptions = useMemo(() => {
@@ -888,7 +1026,7 @@ function App() {
 
       {/* Sidebar Navigation */}
       <aside className="sidebar">
-        <div className="brand" onClick={handleLogout} style={{ cursor: 'pointer' }} title="Click to log out">
+        <div className="brand">
           <span className="brand-mark">↟</span>
           <span>Flood<span>Response</span></span>
         </div>
@@ -912,12 +1050,21 @@ function App() {
           </div>
         </div>
 
-        <div className="operator" onClick={handleLogout} style={{ cursor: 'pointer' }} title="Log out Operator">
+        {/* FIXED: Accidental logout card click resolved */}
+        <div className="operator" style={{ display: 'flex', alignItems: 'center' }}>
           <div className="avatar">RS</div>
-          <div>
-            <strong>Ravi Sharma</strong>
-            <small>Exit Command Console</small>
+          <div style={{ flex: 1, minWidth: 0, paddingLeft: '8px' }}>
+            <strong style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>Ravi Sharma</strong>
+            <small>Control room officer</small>
           </div>
+          <button 
+            onClick={handleLogout} 
+            className="btn-secondary" 
+            title="Log Out Operator" 
+            style={{ padding: '4px 6px', fontSize: '10px', background: '#24544c', border: 'none', color: '#afc4be' }}
+          >
+            🚪 Exit
+          </button>
         </div>
       </aside>
 
@@ -1046,37 +1193,26 @@ function App() {
                 </div>
               </div>
 
-              {/* IoT Matrix Stream Panel */}
+              {/* Real Leaflet Map integration */}
               <div className="map-panel panel" style={{ display: 'flex', flexDirection: 'column' }}>
                 <div className="panel-heading" style={{ padding: '22px 22px 10px' }}>
                   <div>
-                    <p className="eyebrow">HYDRA IoT TELEMETRY</p>
-                    <h2>Ameerpet Sensors Live Stream</h2>
+                    <p className="eyebrow">REAL GIS LIVE MAP</p>
+                    <h2>Ameerpet Interactive Map</h2>
                   </div>
-                  <span className="live-badge" style={{ padding: '3px 8px' }}>Active</span>
+                  <button className="map-button" onClick={() => setView('Incident map')}>Fullscreen map</button>
                 </div>
                 
-                <div className="iot-sensors-container" style={{ padding: '0 22px 22px', flex: 1, display: 'grid', gap: '10px' }}>
-                  {sensors.map(s => (
-                    <div key={s.id} className={`sensor-strip-card ${s.status.toLowerCase()}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', border: '1px solid #edf1ef', borderRadius: '8px', background: s.status === 'CRITICAL' ? '#fff5f4' : s.status === 'WARNING' ? '#fffbf2' : 'white' }}>
-                      <div>
-                        <strong>{s.id}: {s.type}</strong>
-                        <div style={{ fontSize: '9px', color: '#7a8683' }}>{s.landmark}</div>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ fontFamily: 'DM Mono', fontWeight: 'bold', fontSize: '13px', color: s.status === 'CRITICAL' ? '#c8493d' : s.status === 'WARNING' ? '#a06010' : '#176f59' }}>
-                          {s.value}{s.unit}
-                        </span>
-                        <button 
-                          className="map-button" 
-                          style={{ padding: '4px 6px', fontSize: '9px' }}
-                          onClick={() => handleSensorTriage(s)}
-                        >
-                          Triage
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                <div className="map-canvas-container" style={{ flex: 1, minHeight: '293px', position: 'relative', margin: '0 22px 22px', border: '1px solid #e4ebe7', borderRadius: '8px' }}>
+                  <MapContainer 
+                    incidents={incidents}
+                    selectedId={selectedId}
+                    setSelectedId={setSelectedId}
+                    dispatchAnimations={dispatchAnimations}
+                    mapPriorityFilter="All"
+                    mapStatusFilter="All"
+                    isMini={true}
+                  />
                 </div>
               </div>
             </section>
@@ -1212,7 +1348,7 @@ function App() {
                       >
                         <option value="">-- Select Pending Incident --</option>
                         {preemptTargetOptions.map(opt => (
-                          <option key={opt.id} value={opt.id}>{opt.id}: {opt.type} ({opt.location}) [{opt.priority}]</option>
+                          <option key={opt.id} value={opt.id}>{opt.id} [{opt.priority}] - {opt.location}</option>
                         ))}
                       </select>
                     </div>
@@ -1299,12 +1435,12 @@ function App() {
         {view === 'Incident map' && (
           <section className="fullscreen-map-view panel">
             <div className="map-view-header">
-              <h2>🗺️ Interactive Triage Map</h2>
+              <h2>🗺️ Interactive GIS Triage Map</h2>
               <div className="map-filters">
                 <div className="filter-group">
-                  <label htmlFor="map-priority-select">Priority: </label>
+                  <label htmlFor="map-priority-select-fullscreen">Priority: </label>
                   <select 
-                    id="map-priority-select"
+                    id="map-priority-select-fullscreen"
                     value={mapPriorityFilter} 
                     onChange={e => setMapPriorityFilter(e.target.value)}
                   >
@@ -1317,9 +1453,9 @@ function App() {
                 </div>
 
                 <div className="filter-group">
-                  <label htmlFor="map-status-select">Status: </label>
+                  <label htmlFor="map-status-select-fullscreen">Status: </label>
                   <select 
-                    id="map-status-select"
+                    id="map-status-select-fullscreen"
                     value={mapStatusFilter} 
                     onChange={e => setMapStatusFilter(e.target.value)}
                   >
@@ -1333,50 +1469,16 @@ function App() {
               </div>
             </div>
 
-            <div className="large-map-container">
-              <div className="map-canvas large" role="img" aria-label="Large map view of Ameerpet pilot zone">
-                <div className="river one"></div>
-                <div className="river two"></div>
-                <div className="road r1"></div>
-                <div className="road r2"></div>
-                <div className="road r3"></div>
-                
-                <span className="map-label l1">Ameerpet Metro</span>
-                <span className="map-label l2">Buddhanagar</span>
-                <span className="map-label l3">Maitrivanam</span>
-                
-                {filteredIncidents.map((incident) => (
-                  <button 
-                    key={incident.id} 
-                    onClick={() => {
-                      setSelectedId(incident.id)
-                      setView('Control room')
-                    }} 
-                    className={`map-pin large ${incident.priority.toLowerCase()} ${incident.status === 'Team dispatched' ? 'pulse-pin' : ''}`} 
-                    style={{ left: `${incident.x}%`, top: `${incident.y}%` }} 
-                    title={`${incident.id}: ${incident.type} (${incident.priority})`}
-                  >
-                    <span className="pin-symbol">{incident.icon}</span>
-                    <span className="pin-tooltip">{incident.id}: {incident.type} ({incident.priority})</span>
-                  </button>
-                ))}
-
-                {/* Animated Dispatch Vehicles */}
-                {Object.keys(dispatchAnimations).map(id => {
-                  const anim = dispatchAnimations[id]
-                  if (anim.progress >= 100) return null
-                  return (
-                    <div 
-                      key={`large-vehicle-${id}`} 
-                      className="map-vehicle large" 
-                      style={{ left: `${anim.x}%`, top: `${anim.y}%` }}
-                    >
-                      🚨
-                      <span className="pin-tooltip">{anim.teamName} En Route</span>
-                    </div>
-                  )
-                })}
-              </div>
+            <div className="large-map-container" style={{ position: 'relative', height: '500px', border: '1px solid #e2eae7', borderRadius: '8px' }}>
+              <MapContainer 
+                incidents={incidents}
+                selectedId={selectedId}
+                setSelectedId={setSelectedId}
+                dispatchAnimations={dispatchAnimations}
+                mapPriorityFilter={mapPriorityFilter}
+                mapStatusFilter={mapStatusFilter}
+                isMini={false}
+              />
             </div>
           </section>
         )}
@@ -1451,9 +1553,9 @@ function App() {
 
                 <form onSubmit={handleCitizenSubmit} className="citizen-form">
                   <div className="form-group">
-                    <label htmlFor="cit-name-sim">Reporter Name:</label>
+                    <label htmlFor="cit-name-op-sim">Reporter Name:</label>
                     <input 
-                      id="cit-name-sim"
+                      id="cit-name-op-sim"
                       type="text" 
                       placeholder="e.g. Anand Sharma" 
                       value={citizenForm.name} 
@@ -1463,9 +1565,9 @@ function App() {
                   </div>
 
                   <div className="form-group">
-                    <label htmlFor="cit-phone-sim">Phone Number:</label>
+                    <label htmlFor="cit-phone-op-sim">Phone Number:</label>
                     <input 
-                      id="cit-phone-sim"
+                      id="cit-phone-op-sim"
                       type="tel" 
                       placeholder="e.g. +91 98480 12345" 
                       value={citizenForm.phone} 
@@ -1475,9 +1577,9 @@ function App() {
                   </div>
 
                   <div className="form-group">
-                    <label htmlFor="cit-location-sim">Area Landmark:</label>
+                    <label htmlFor="cit-location-op-sim">Area Landmark:</label>
                     <select 
-                      id="cit-location-sim"
+                      id="cit-location-op-sim"
                       value={citizenForm.location} 
                       onChange={e => setCitizenForm(prev => ({ ...prev, location: e.target.value }))}
                     >
@@ -1488,9 +1590,9 @@ function App() {
                   </div>
 
                   <div className="form-group">
-                    <label htmlFor="cit-type-sim">Hazard Type:</label>
+                    <label htmlFor="cit-type-op-sim">Hazard Type:</label>
                     <select 
-                      id="cit-type-sim"
+                      id="cit-type-op-sim"
                       value={citizenForm.type} 
                       onChange={e => setCitizenForm(prev => ({ ...prev, type: e.target.value }))}
                     >
@@ -1522,9 +1624,9 @@ function App() {
                   </div>
 
                   <div className="form-group">
-                    <label htmlFor="cit-desc-sim">Description of Hazard:</label>
+                    <label htmlFor="cit-desc-op-sim">Description of Hazard:</label>
                     <textarea 
-                      id="cit-desc-sim"
+                      id="cit-desc-op-sim"
                       rows="3" 
                       placeholder="What is happening? Provide specific details (e.g. water height, spark frequency)..." 
                       value={citizenForm.description} 
@@ -1564,6 +1666,35 @@ function App() {
                     <li>Retains nested audits (Reporter Name & Phone) to preserve dispatch transparency.</li>
                   </ul>
                 </div>
+
+                {/* IoT Live Sensor Matrix */}
+                <div className="iot-sensor-panel" style={{ marginTop: '20px', borderTop: '1px solid #edf1ef', paddingTop: '15px' }}>
+                  <h4 style={{ margin: '0 0 6px', fontSize: '11px', fontWeight: '700', color: '#536763' }}>📡 Ameerpet IoT Telemetry Stream</h4>
+                  <p className="panel-intro" style={{ marginBottom: '10px', fontSize: '10px' }}>Select an active sensor warning to trigger AI triage ingestion.</p>
+                  <div style={{ display: 'grid', gap: '8px' }}>
+                    {sensors.map(s => (
+                      <div key={s.id} className={`sensor-strip-card ${s.status.toLowerCase()}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', border: '1px solid #edf1ef', borderRadius: '6px', background: s.status === 'CRITICAL' ? '#fff5f4' : s.status === 'WARNING' ? '#fffbf2' : 'white' }}>
+                        <div>
+                          <strong style={{ fontSize: '11px' }}>{s.id}: {s.type}</strong>
+                          <div style={{ fontSize: '9px', color: '#7a8683' }}>{s.landmark}</div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontFamily: 'DM Mono', fontWeight: 'bold', fontSize: '12px', color: s.status === 'CRITICAL' ? '#c8493d' : s.status === 'WARNING' ? '#a06010' : '#176f59' }}>
+                            {s.value}{s.unit}
+                          </span>
+                          <button 
+                            type="button"
+                            className="map-button" 
+                            style={{ padding: '3px 6px', fontSize: '9px' }}
+                            onClick={() => handleSensorTriage(s)}
+                          >
+                            Triage
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </section>
@@ -1574,9 +1705,9 @@ function App() {
           <header 
             className="drawer-bar" 
             onClick={() => setDevConsoleOpen(!devConsoleOpen)} 
-            style={{ padding: '12px 18px', background: '#121817', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', borderBottom: devConsoleOpen ? '1px solid #2d3c39' : 'none' }}
+            style={{ padding: '12px 18px', background: '#121817', display: 'flex', justifycontent: 'space-between', alignItems: 'center', cursor: 'pointer', borderBottom: devConsoleOpen ? '1px solid #2d3c39' : 'none' }}
           >
-            <strong style={{ fontSize: '11px', fontFamily: 'DM Mono', letterSpacing: '0.8px' }}>⚙️ DEVELOPER SYSTEM TELEMETRY LOGGER (SQL & AI)</strong>
+            <strong style={{ fontSize: '11px', fontFamily: 'DM Mono', letterSpacing: '0.8px', flex: 1 }}>⚙️ DEVELOPER SYSTEM TELEMETRY LOGGER (SQL & AI)</strong>
             <button style={{ background: 'none', border: 0, color: '#72ddad', cursor: 'pointer', fontSize: '11px' }}>
               {devConsoleOpen ? '▼ Hide Console' : '▲ Show Console'}
             </button>
