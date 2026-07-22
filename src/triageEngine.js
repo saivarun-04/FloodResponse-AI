@@ -17,6 +17,28 @@ const HAZARD_RULES = {
 };
 
 /**
+ * Simulates an LLM API call response and logs prompt metadata.
+ */
+export function simulateLLMParse(rawDescription, type) {
+  const prompt = `SYSTEM: You are an emergency triage assistant. Analyze this citizen flood report:
+REPORT: "${rawDescription}"
+CLASSIFY: hazard_type (electrical, stranded, drainage, waterlogging), vulnerable_people (bool), immediate_urgency (bool).
+OUTPUT FORMAT: JSON block only.`;
+  const tokens = Math.floor(rawDescription.length * 1.2) + 115;
+  const cost = (tokens * 0.0000015).toFixed(6);
+  return {
+    prompt,
+    tokens,
+    cost,
+    model: "gemini-1.5-pro",
+    parsed: {
+      type: type,
+      confidence: 0.96
+    }
+  };
+}
+
+/**
  * Calculates duplication confidence percentage between a new report and an existing incident.
  */
 export function calculateDuplicateConfidence(report, incident) {

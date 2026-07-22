@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react'
-import { processCitizenReport, getAIExplanation, LANDMARKS } from './triageEngine'
+import { processCitizenReport, getAIExplanation, simulateLLMParse, LANDMARKS } from './triageEngine'
 
 const initialIncidents = [
   {
@@ -23,6 +23,9 @@ const initialIncidents = [
       { id: 'REP-001', name: 'Kiran Kumar', phone: '9876543210', description: 'Sparking wire fell into the water near Maitrivanam.', timestamp: '10 min ago' },
       { id: 'REP-002', name: 'Anitha R.', phone: '9848022338', description: 'Live cable sparking on flooded road.', timestamp: '7 min ago' },
       { id: 'REP-003', name: 'Suresh P.', phone: '9000123456', description: 'Please send help, electrical sparks in water.', timestamp: '4 min ago' }
+    ],
+    smsHistory: [
+      { sender: 'Citizen', text: 'Sparks coming out from the junction pole under water!', time: '10 min ago' }
     ]
   },
   {
@@ -44,6 +47,9 @@ const initialIncidents = [
     y: 55,
     linkedReports: [
       { id: 'REP-004', name: 'Rajesh V.', phone: '9111222333', description: 'Elderly couple stuck on ground floor. Water at 2 feet.', timestamp: '8 min ago' }
+    ],
+    smsHistory: [
+      { sender: 'Citizen', text: 'Water level is rising. My grandparents cannot climb up. Help!', time: '8 min ago' }
     ]
   },
   {
@@ -65,7 +71,8 @@ const initialIncidents = [
     y: 70,
     linkedReports: [
       { id: 'REP-005', name: 'Mohammad', phone: '9555666777', description: 'Large plastic block in stormwater drain.', timestamp: '13 min ago' }
-    ]
+    ],
+    smsHistory: []
   },
   {
     id: 'INC-1045',
@@ -86,7 +93,8 @@ const initialIncidents = [
     y: 31,
     linkedReports: [
       { id: 'REP-006', name: 'David L.', phone: '9222333444', description: 'Water building up near metro steps.', timestamp: '18 min ago' }
-    ]
+    ],
+    smsHistory: []
   },
 ]
 
@@ -97,8 +105,23 @@ const initialTeams = [
   { name: 'Traffic Diversion Team 03', icon: '🌊', skill: 'Signage & Detours', status: 'Idle', baseEta: 22, logs: ['Patrolling sector'] }
 ]
 
+const initialSensors = [
+  { id: 'SEN-102', landmark: 'Maitrivanam junction, Ameerpet', type: 'Drainage Level Sensor', value: 88, status: 'CRITICAL', unit: '%' },
+  { id: 'SEN-105', landmark: 'Buddhanagar, Lane 3', type: 'Water Flow Valve', value: 78, status: 'WARNING', unit: 'm³/s' },
+  { id: 'SEN-108', landmark: 'Balkampet Main Road', type: 'Road Flood Depth', value: 12, status: 'NORMAL', unit: 'cm' }
+]
+
 function App() {
-  // Load State from LocalStorage
+  // Authentication Role Gateways
+  const [currentUserRole, setCurrentUserRole] = useState(() => {
+    return localStorage.getItem('nxtwave_role') || null
+  })
+  const [loginMode, setLoginMode] = useState(null)
+  const [operatorUser, setOperatorUser] = useState('')
+  const [operatorPass, setOperatorPass] = useState('')
+  const [loginError, setLoginError] = useState('')
+
+  // State Management with LocalStorage persistence
   const [incidents, setIncidents] = useState(() => {
     const saved = localStorage.getItem('nxtwave_incidents')
     return saved ? JSON.parse(saved) : initialIncidents
@@ -110,20 +133,34 @@ function App() {
   const [weatherAlert, setWeatherAlert] = useState(() => {
     return localStorage.getItem('nxtwave_weather') || 'Green'
   })
+  const [offlineQueue, setOfflineQueue] = useState(() => {
+    const saved = localStorage.getItem('nxtwave_offline_queue')
+    return saved ? JSON.parse(saved) : []
+  })
+  const [sensors] = useState(initialSensors)
+
+  // Navigation & Details selected
   const [selectedId, setSelectedId] = useState('INC-1048')
   const [view, setView] = useState('Control room')
   const [offlineMode, setOfflineMode] = useState(false)
-  const [offlineQueue, setOfflineQueue] = useState([])
   const [notification, setNotification] = useState(null)
+
+  // Developer Logger & Retractable Drawer state
+  const [devConsoleOpen, setDevConsoleOpen] = useState(true)
+  const [devLogs, setDevLogs] = useState([])
 
   // AI Assistant Explainer Chat Drawer state
   const [aiExplainOpen, setAiExplainOpen] = useState(false)
   const [aiChatMessages, setAiChatMessages] = useState([])
 
+  // Preemption / Redirect state
+  const [preemptTargetIncidentId, setPreemptTargetIncidentId] = useState('')
+  const [preemptDialogOpen, setPreemptDialogOpen] = useState(false)
+
   // Live Dispatch Animation coordinates state
   const [dispatchAnimations, setDispatchAnimations] = useState({})
 
-  // Form State
+  // Form State (Citizen Report Submission)
   const [citizenForm, setCitizenForm] = useState({
     name: '',
     phone: '',
@@ -134,8 +171,9 @@ function App() {
     urgent: false
   })
   const [simulationLog, setSimulationLog] = useState([])
+  const [smsInputText, setSmsInputText] = useState('')
 
-  // Filter state for Map view
+  // Filters for Map view
   const [mapPriorityFilter, setMapPriorityFilter] = useState('All')
   const [mapStatusFilter, setMapStatusFilter] = useState('All')
 
@@ -152,11 +190,37 @@ function App() {
     localStorage.setItem('nxtwave_weather', weatherAlert)
   }, [weatherAlert])
 
-  // Trigger brief alert notifications
+  useEffect(() => {
+    localStorage.setItem('nxtwave_offline_queue', JSON.stringify(offlineQueue))
+  }, [offlineQueue])
+
+  useEffect(() => {
+    if (currentUserRole) {
+      localStorage.setItem('nxtwave_role', currentUserRole)
+    } else {
+      localStorage.removeItem('nxtwave_role')
+    }
+  }, [currentUserRole])
+
+  // Helper: Log Developer and Database Telemetry
+  const logDev = (message, type = 'system') => {
+    const timestamp = new Date().toLocaleTimeString()
+    setDevLogs(prev => [`[${timestamp}] [${type.toUpperCase()}] ${message}`, ...prev])
+  }
+
+  // Trigger brief alert toast notifications
   const showNotification = (message, type = 'info') => {
     setNotification({ message, type })
     setTimeout(() => setNotification(null), 4000)
+    logDev(`Toast Notification: "${message}" (${type})`, 'ui')
   }
+
+  // Trigger Developer Telemetry logs initial
+  useEffect(() => {
+    logDev('Database connections initialized (SQLite3 Simulated).', 'db')
+    logDev('Explainable AI scoring rules loaded.', 'ai')
+    logDev('Offline queue monitor running in browser thread.', 'system')
+  }, [])
 
   // Animation ticker for active dispatches
   useEffect(() => {
@@ -170,26 +234,26 @@ function App() {
         for (const id of activeDispatches) {
           const current = next[id]
           if (current.progress < 100) {
-            const nextProgress = Math.min(100, current.progress + 5)
-            // Interpolate from depot (50%, 50%) to the incident's coordinates
+            const nextProgress = Math.min(100, current.progress + 10)
             const x = 50 + ((current.targetX - 50) * nextProgress) / 100
             const y = 50 + ((current.targetY - 50) * nextProgress) / 100
             next[id] = { ...current, x, y, progress: nextProgress }
             updated = true
             
             if (nextProgress === 100) {
-              // Update log that vehicle has arrived
               setTeams(prevTeams => prevTeams.map(t => 
                 t.name === current.teamName 
                   ? { ...t, logs: [`Arrived at ${id}`, ...t.logs] }
                   : t
               ))
+              logDev(`Simulated vehicle coordinates matched incident ${id} (Arrived).`, 'system')
+              logDev(`UPDATE response_units SET latitude=${current.targetX}, longitude=${current.targetY} WHERE name='${current.teamName}';`, 'db')
             }
           }
         }
         return updated ? next : prev
       })
-    }, 300)
+    }, 400)
 
     return () => clearInterval(interval)
   }, [dispatchAnimations])
@@ -198,16 +262,23 @@ function App() {
   useEffect(() => {
     if (!offlineMode && offlineQueue.length > 0) {
       showNotification(`Reconnected! Processing ${offlineQueue.length} queued offline report(s).`, 'success')
+      logDev(`Processing offline queue synchronization... syncing ${offlineQueue.length} records.`, 'system')
       
       setIncidents(prevIncidents => {
         let currentIncidents = [...prevIncidents]
         offlineQueue.forEach(report => {
+          logDev(`Executing LLM parser rules on offline record: "${report.description}"`, 'ai')
+          
           const result = processCitizenReport(report, currentIncidents, weatherAlert)
           if (result.isDuplicate) {
+            logDev(`Matched duplicate ID ${result.matchedId}. Merging report...`, 'ai')
+            logDev(`UPDATE incidents SET reports = reports + 1, score = ${result.updatedIncident.score} WHERE id = '${result.matchedId}';`, 'db')
             currentIncidents = currentIncidents.map(inc => 
               inc.id === result.matchedId ? result.updatedIncident : inc
             )
           } else {
+            logDev(`Ingesting new incident ${result.newIncident.id}.`, 'ai')
+            logDev(`INSERT INTO incidents (id, type, location, priority, score) VALUES ('${result.newIncident.id}', '${result.newIncident.type}', '${result.newIncident.location}', '${result.newIncident.priority}', ${result.newIncident.score});`, 'db')
             currentIncidents.push(result.newIncident)
           }
         })
@@ -227,7 +298,7 @@ function App() {
     [incidents],
   )
 
-  // Resource Overlap Checker: checks if a team is already dispatched elsewhere
+  // Resource Overlap Checker: checks if team is dispatched elsewhere
   const activeConflict = useMemo(() => {
     if (!selected || selected.status === 'Team dispatched') return null
     const duplicateAssignment = incidents.find(
@@ -236,25 +307,47 @@ function App() {
     return duplicateAssignment ? duplicateAssignment : null
   }, [selected, incidents])
 
+  // Handle Operator Log-In
+  const handleOperatorLogin = (e) => {
+    e.preventDefault()
+    if (operatorUser.toLowerCase() === 'operator' && operatorPass === 'password') {
+      setCurrentUserRole('operator')
+      setLoginError('')
+      showNotification('Access authorized. Welcome Ravi Sharma.', 'success')
+      logDev('Operator Ravi Sharma authenticated. Token generated.', 'security')
+    } else {
+      setLoginError('Invalid operator credentials. (Try: operator / password)')
+      logDev('Failed operator authentication attempt.', 'security')
+    }
+  }
+
+  // Handle Log-Out
+  const handleLogout = () => {
+    setCurrentUserRole(null)
+    setLoginMode(null)
+    setOperatorUser('')
+    setOperatorPass('')
+    setLoginError('')
+    showNotification('Logged out successfully.', 'info')
+    logDev('Session destroyed.', 'security')
+  }
+
   // Dispatch approval
   const approveResponse = () => {
     if (!selected) return
 
-    // Update incident status
     setIncidents((current) => current.map((incident) => (
       incident.id === selected.id
         ? { ...incident, status: 'Team dispatched', time: 'Just now' }
         : incident
     )))
 
-    // Update team status
     setTeams(current => current.map(t => 
       t.name === selected.team
         ? { ...t, status: 'Dispatched', logs: [`Dispatched to ${selected.id} via ${selected.route}`, ...t.logs] }
         : t
     ))
 
-    // Initialize animation (starts at center 50%, 50% depot)
     setDispatchAnimations(prev => ({
       ...prev,
       [selected.id]: {
@@ -269,6 +362,8 @@ function App() {
     }))
 
     showNotification(`Emergency Dispatch Approved for ${selected.id}!`, 'success')
+    logDev(`UPDATE incidents SET status='Team dispatched' WHERE id='${selected.id}';`, 'db')
+    logDev(`UPDATE response_units SET status='Dispatched' WHERE name='${selected.team}';`, 'db')
   }
 
   // Resolve incident
@@ -282,7 +377,6 @@ function App() {
         : incident
     ))
 
-    // Set team back to idle
     setTeams(current => current.map(t => 
       t.name === inc.team
         ? { ...t, status: 'Idle', logs: [`Completed response at ${id}`, ...t.logs] }
@@ -290,6 +384,115 @@ function App() {
     ))
 
     showNotification(`Incident ${id} marked as Resolved. Team released.`, 'info')
+    logDev(`UPDATE incidents SET status='Resolved' WHERE id='${id}';`, 'db')
+    logDev(`UPDATE response_units SET status='Idle' WHERE name='${inc.team}';`, 'db')
+  }
+
+  // Preempt / Redirect Dispatch
+  const confirmPreemptAndRedirect = () => {
+    if (!selected || !preemptTargetIncidentId) return
+
+    const preemptedIncidentId = selected.id
+    const targetIncident = incidents.find(i => i.id === preemptTargetIncidentId)
+    if (!targetIncident) return
+
+    // 1. Reset preempted incident
+    setIncidents(current => current.map(incident => {
+      if (incident.id === preemptedIncidentId) {
+        return { 
+          ...incident, 
+          status: 'Awaiting approval', 
+          factors: [...incident.factors, `Preempted by operator from team ${incident.team}`]
+        }
+      }
+      if (incident.id === preemptTargetIncidentId) {
+        return { 
+          ...incident, 
+          status: 'Team dispatched', 
+          time: 'Just now' 
+        }
+      }
+      return incident
+    }))
+
+    // 2. Log team override
+    setTeams(current => current.map(t => 
+      t.name === selected.team
+        ? { ...t, logs: [`PREEMPTED: Redirected from ${preemptedIncidentId} to ${preemptTargetIncidentId}`, ...t.logs] }
+        : t
+    ))
+
+    // 3. Trigger new map animation starting from old coordinate to new coordinate
+    setDispatchAnimations(prev => ({
+      ...prev,
+      [preemptTargetIncidentId]: {
+        x: selected.x,
+        y: selected.y,
+        targetX: targetIncident.x,
+        targetY: targetIncident.y,
+        progress: 0,
+        teamName: selected.team,
+        icon: targetIncident.icon
+      }
+    }))
+
+    showNotification(`Team redirected from ${preemptedIncidentId} to ${preemptTargetIncidentId}!`, 'warning')
+    logDev(`PREEMPT TRIGGERED: Redirecting ${selected.team} from ${preemptedIncidentId} to ${preemptTargetIncidentId}.`, 'security')
+    logDev(`UPDATE incidents SET status='Awaiting approval' WHERE id='${preemptedIncidentId}';`, 'db')
+    logDev(`UPDATE incidents SET status='Team dispatched', team='${selected.team}' WHERE id='${preemptTargetIncidentId}';`, 'db')
+
+    setPreemptDialogOpen(false)
+    setPreemptTargetIncidentId('')
+    setSelectedId(preemptTargetIncidentId)
+  }
+
+  // Two-Way Citizen SMS Chat Send
+  const handleSendSms = (e) => {
+    e.preventDefault()
+    if (!smsInputText.trim() || !selected) return
+
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    const operatorMsg = { sender: 'Operator', text: smsInputText, time }
+
+    // Add msg
+    setIncidents(current => current.map(incident => {
+      if (incident.id === selected.id) {
+        const history = incident.smsHistory ? [...incident.smsHistory, operatorMsg] : [operatorMsg]
+        return { ...incident, smsHistory: history }
+      }
+      return incident
+    }))
+
+    setSmsInputText('')
+    logDev(`SMS Sent to citizen: "${operatorMsg.text}"`, 'telecom')
+    logDev(`INSERT INTO sms_logs (incident_id, sender, body) VALUES ('${selected.id}', 'Operator', '${operatorMsg.text}');`, 'db')
+
+    // Simulate Citizen reply
+    setTimeout(() => {
+      let replyText = "Okay, standing by. Please hurry."
+      if (selected.type.toLowerCase().includes("wire")) {
+        replyText = "Understood. We are staying clear of the water and sparking wire. Keep us updated when the team arrives."
+      } else if (selected.type.toLowerCase().includes("stranded")) {
+        replyText = "Yes, we are on the second floor balcony. Water level is still rising slowly but we are safe for now."
+      } else if (selected.type.toLowerCase().includes("drain")) {
+        replyText = "Thanks. We will let you know if the blockage gets worse or causes road flooding."
+      }
+
+      const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      const citizenReply = { sender: 'Citizen', text: replyText, time: replyTime }
+
+      setIncidents(current => current.map(incident => {
+        if (incident.id === selected.id) {
+          const history = incident.smsHistory ? [...incident.smsHistory, citizenReply] : [citizenReply]
+          return { ...incident, smsHistory: history }
+        }
+        return incident
+      }))
+
+      logDev(`Incoming SMS from citizen: "${replyText}"`, 'telecom')
+      logDev(`INSERT INTO sms_logs (incident_id, sender, body) VALUES ('${selected.id}', 'Citizen', '${replyText}');`, 'db')
+      showNotification(`New citizen message received for ${selected.id}`, 'info')
+    }, 2000)
   }
 
   // Override / Modify priority manually
@@ -313,6 +516,8 @@ function App() {
       return incident
     }))
     showNotification(`Priority manually overridden to ${newPriority}.`, 'info')
+    logDev(`MANUAL OVERRIDE: incident ${id} set to ${newPriority}.`, 'security')
+    logDev(`UPDATE incidents SET priority='${newPriority}' WHERE id='${id}';`, 'db')
   }
 
   // Override / Assign alternate team
@@ -323,6 +528,8 @@ function App() {
         : incident
     ))
     showNotification(`Assigned alternate team: ${newTeam}`, 'info')
+    logDev(`MANUAL TEAM REASSIGN: incident ${id} assigned ${newTeam}.`, 'security')
+    logDev(`UPDATE incidents SET team='${newTeam}' WHERE id='${id}';`, 'db')
   }
 
   // Handle Citizen Form Submit
@@ -342,10 +549,15 @@ function App() {
       return
     }
 
+    // AI Telemetry Logs
+    const llmDetails = simulateLLMParse(payload.description, payload.type)
+    logDev(`[LLM Call] Model: ${llmDetails.model} | Prompt length: ${llmDetails.prompt.length} chars`, 'ai')
+    logDev(`[LLM Input] ${llmDetails.prompt}`, 'ai')
+    logDev(`[LLM Output] Tokens: ${llmDetails.tokens} | Cost: $${llmDetails.cost} | JSON parsed successfully`, 'ai')
+
     // Process using explainable AI Engine
     const result = processCitizenReport(payload, incidents, weatherAlert)
     
-    // Log simulation steps
     const steps = [
       `[Triage Engine] Received report: "${payload.description}" at ${payload.location}`,
       `[AI Audit] Base hazard priority evaluated for "${payload.type}"`,
@@ -361,14 +573,45 @@ function App() {
       ))
       showNotification(`Duplicate merged into ${result.matchedId}. Priority updated!`, 'info')
       setSelectedId(result.matchedId)
+      logDev(`Merged duplicate report into ${result.matchedId}. Score recalculated.`, 'system')
+      logDev(`UPDATE incidents SET reports=reports+1, score=${result.updatedIncident.score} WHERE id='${result.matchedId}';`, 'db')
     } else {
       setIncidents(prev => [...prev, result.newIncident])
       showNotification(`New Triage Incident Created: ${result.newIncident.id}`, 'success')
       setSelectedId(result.newIncident.id)
+      logDev(`Inserted new incident ${result.newIncident.id} into database.`, 'system')
+      logDev(`INSERT INTO incidents (id, type, location, score, priority) VALUES ('${result.newIncident.id}', '${result.newIncident.type}', '${result.newIncident.location}', ${result.newIncident.score}, '${result.newIncident.priority}');`, 'db')
     }
 
-    // Reset fields
     setCitizenForm(prev => ({ ...prev, description: '', name: '', phone: '' }))
+  }
+
+  // Handle IoT Sensor Triage Trigger
+  const handleSensorTriage = (sensor) => {
+    const mockReport = {
+      name: `IoT System`,
+      phone: `SENSOR-${sensor.id}`,
+      location: sensor.landmark,
+      type: sensor.type.includes('Drainage') ? 'drainage' : sensor.type.includes('Depth') ? 'waterlogging' : 'stranded',
+      description: `AUTOMATED IoT ALERT: ${sensor.type} registered value ${sensor.value}${sensor.unit}. Urgency threshold exceeded.`,
+      vulnerable: false,
+      urgent: sensor.status === 'CRITICAL'
+    }
+
+    logDev(`Sensor telemetry threshold breach on ${sensor.id} at ${sensor.landmark}.`, 'iot')
+
+    const result = processCitizenReport(mockReport, incidents, weatherAlert)
+    if (result.isDuplicate) {
+      setIncidents(prev => prev.map(inc => 
+        inc.id === result.matchedId ? result.updatedIncident : inc
+      ))
+      showNotification(`Sensor Alert: Merged duplicate into ${result.matchedId}`, 'info')
+      setSelectedId(result.matchedId)
+    } else {
+      setIncidents(prev => [...prev, result.newIncident])
+      showNotification(`Sensor Alert: Registered new incident ${result.newIncident.id}`, 'success')
+      setSelectedId(result.newIncident.id)
+    }
   }
 
   // AI Chat Explainer triggers
@@ -408,6 +651,231 @@ function App() {
     })
   }, [incidents, mapPriorityFilter, mapStatusFilter])
 
+  // Reroutable options (incidents needing response)
+  const preemptTargetOptions = useMemo(() => {
+    return incidents.filter(i => i.id !== selected.id && i.status !== 'Resolved' && i.status !== 'Team dispatched')
+  }, [incidents, selected])
+
+  // Citizen-specific submitted reports list
+  const citizenSubmissions = useMemo(() => {
+    return incidents.filter(i => 
+      i.linkedReports && i.linkedReports.some(rep => rep.phone !== 'Not provided' && !rep.phone.includes('SENSOR'))
+    )
+  }, [incidents])
+
+  // Login Gateway screen
+  if (!currentUserRole) {
+    return (
+      <div className="login-gateway">
+        <div className="login-box">
+          <div className="login-header">
+            <span className="logo-icon">↟</span>
+            <h2>FloodResponse AI</h2>
+            <p>Monsoon Emergency Triage Gateway</p>
+          </div>
+          
+          {!loginMode ? (
+            <div className="role-choices">
+              <button className="role-choice-btn citizen" onClick={() => setCurrentUserRole('citizen')}>
+                <span className="icon">👤</span>
+                <strong>Citizen Portal</strong>
+                <small>Report flooding, live wires, or ask for rescue</small>
+              </button>
+              
+              <button className="role-choice-btn operator" onClick={() => setLoginMode('operator')}>
+                <span className="icon">⌘</span>
+                <strong>AI Command Center</strong>
+                <small>Dispatch teams, review rankings, and manage telemetry</small>
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleOperatorLogin} className="operator-login-form">
+              <h3>Operator Authentication</h3>
+              <div className="form-group">
+                <label htmlFor="login-username">Operator Username:</label>
+                <input 
+                  id="login-username"
+                  type="text" 
+                  value={operatorUser} 
+                  onChange={e => setOperatorUser(e.target.value)} 
+                  placeholder="Username (use: operator)"
+                  required 
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="login-password">Password:</label>
+                <input 
+                  id="login-password"
+                  type="password" 
+                  value={operatorPass} 
+                  onChange={e => setOperatorPass(e.target.value)} 
+                  placeholder="Password (use: password)"
+                  required 
+                />
+              </div>
+              {loginError && <p className="login-error-text">❌ {loginError}</p>}
+              <div className="login-form-actions">
+                <button type="button" className="btn-secondary" onClick={() => setLoginMode(null)}>Back</button>
+                <button type="submit" className="approve-button">Authorize & Enter</button>
+              </div>
+            </form>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // CITIZEN VIEW PORTAL
+  if (currentUserRole === 'citizen') {
+    return (
+      <main className="app-shell">
+        <section className="workspace citizen-mode">
+          <header className="topbar">
+            <div>
+              <p className="eyebrow">HYDERABAD MONSOON RESPONSE</p>
+              <h1>Citizen Reporting Portal</h1>
+              <p className="subhead">Report flooding hazards instantly. Track emergency dispatches below.</p>
+            </div>
+            <div className="top-actions">
+              <button className="btn-secondary logout-btn" onClick={handleLogout}>Exit Portal</button>
+            </div>
+          </header>
+
+          <section className="content-grid">
+            <div className="citizen-form-section panel" style={{ padding: '22px' }}>
+              <h2>Log Emergency Request</h2>
+              <form onSubmit={handleCitizenSubmit} className="citizen-form">
+                <div className="form-group">
+                  <label htmlFor="cit-name">Your Name:</label>
+                  <input 
+                    id="cit-name"
+                    type="text" 
+                    placeholder="e.g. Kiran Kumar" 
+                    value={citizenForm.name} 
+                    onChange={e => setCitizenForm(prev => ({ ...prev, name: e.target.value }))}
+                    required 
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="cit-phone">Phone Number:</label>
+                  <input 
+                    id="cit-phone"
+                    type="tel" 
+                    placeholder="e.g. +91 98480 12345" 
+                    value={citizenForm.phone} 
+                    onChange={e => setCitizenForm(prev => ({ ...prev, phone: e.target.value }))}
+                    required 
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="cit-location">Landmark Area:</label>
+                  <select 
+                    id="cit-location"
+                    value={citizenForm.location} 
+                    onChange={e => setCitizenForm(prev => ({ ...prev, location: e.target.value }))}
+                  >
+                    {Object.keys(LANDMARKS).map(l => (
+                      <option key={l} value={l}>{l}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="cit-type">Emergency Category:</label>
+                  <select 
+                    id="cit-type"
+                    value={citizenForm.type} 
+                    onChange={e => setCitizenForm(prev => ({ ...prev, type: e.target.value }))}
+                  >
+                    <option value="waterlogging">Waterlogging on Street</option>
+                    <option value="drainage">Blocked Stormwater Drainage</option>
+                    <option value="stranded">Rescue Needed (Trapped residents)</option>
+                    <option value="electrical">Live Wire / Sparking Electricity Hazard</option>
+                  </select>
+                </div>
+
+                <div className="form-checkbox-row">
+                  <label className="checkbox-container">
+                    <input 
+                      type="checkbox" 
+                      checked={citizenForm.vulnerable} 
+                      onChange={e => setCitizenForm(prev => ({ ...prev, vulnerable: e.target.checked }))} 
+                    />
+                    Trapped infants / elderly family members involved
+                  </label>
+
+                  <label className="checkbox-container">
+                    <input 
+                      type="checkbox" 
+                      checked={citizenForm.urgent} 
+                      onChange={e => setCitizenForm(prev => ({ ...prev, urgent: e.target.checked }))} 
+                    />
+                    Immediate life threat warning
+                  </label>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="cit-desc">Describe what is happening:</label>
+                  <textarea 
+                    id="cit-desc"
+                    rows="3" 
+                    placeholder="Provide specific details (water level heights, spark frequency, trapped location details)..."
+                    value={citizenForm.description}
+                    onChange={e => setCitizenForm(prev => ({ ...prev, description: e.target.value }))}
+                    required
+                  ></textarea>
+                </div>
+
+                <button type="submit" className="submit-report-btn">🚀 Ingest and Triage Emergency</button>
+              </form>
+            </div>
+
+            <div className="citizen-status-section panel" style={{ padding: '22px' }}>
+              <h2>Active Rescue & Hazard Tracking</h2>
+              <p className="panel-intro">Real-time status tracking for emergency calls.</p>
+              
+              <div className="submissions-tracking-list" style={{ marginTop: '15px', display: 'grid', gap: '12px' }}>
+                {citizenSubmissions.map((sub) => (
+                  <div key={sub.id} className="citizen-status-card" style={{ border: '1px solid #edf1ef', borderRadius: '8px', padding: '12px', background: '#fcfcfc' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <strong>{sub.type} ({sub.location})</strong>
+                      <span className={`status ${sub.priority.toLowerCase()}`}>{sub.priority}</span>
+                    </div>
+                    
+                    {/* Visual Progress bar tracker */}
+                    <div className="progress-tracker-line" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', margin: '15px 0 10px', color: '#7a8683' }}>
+                      <span style={{ fontWeight: 'bold', color: '#176f59' }}>✓ Submitted</span>
+                      <span style={{ fontWeight: sub.score >= 50 ? 'bold' : 'normal', color: sub.score >= 50 ? '#176f59' : '#7a8683' }}>
+                        {sub.status === 'Needs verification' ? '⌁ Verifying' : '✓ AI Triaged'}
+                      </span>
+                      <span style={{ fontWeight: sub.status === 'Team dispatched' || sub.status === 'Resolved' ? 'bold' : 'normal', color: sub.status === 'Team dispatched' || sub.status === 'Resolved' ? '#176f59' : '#7a8683' }}>
+                        {sub.status === 'Team dispatched' ? '🚨 Team En Route' : 'Awaiting Dispatch'}
+                      </span>
+                      <span style={{ fontWeight: sub.status === 'Resolved' ? 'bold' : 'normal', color: sub.status === 'Resolved' ? '#37ae79' : '#7a8683' }}>
+                        Resolved
+                      </span>
+                    </div>
+
+                    <div style={{ fontSize: '10px', color: '#536763' }}>
+                      <div><strong>Dispatch Details:</strong> {sub.status === 'Team dispatched' ? `Recommended team "${sub.team}" is en route via "${sub.route}". ETA: ${sub.eta}.` : sub.status === 'Resolved' ? 'Hazard successfully resolved and closed.' : 'AI recommendations compiled. Awaiting operator confirmation.'}</div>
+                    </div>
+                  </div>
+                ))}
+                
+                {citizenSubmissions.length === 0 && (
+                  <p className="empty-state">No emergency requests registered under your device profile yet.</p>
+                )}
+              </div>
+            </div>
+          </section>
+        </section>
+      </main>
+    )
+  }
+
+  // OPERATOR FULL VIEW CONTROL ROOM
   return (
     <main className="app-shell">
       {/* Toast Alert Notification */}
@@ -418,8 +886,9 @@ function App() {
         </div>
       )}
 
+      {/* Sidebar Navigation */}
       <aside className="sidebar">
-        <div className="brand">
+        <div className="brand" onClick={handleLogout} style={{ cursor: 'pointer' }} title="Click to log out">
           <span className="brand-mark">↟</span>
           <span>Flood<span>Response</span></span>
         </div>
@@ -443,11 +912,11 @@ function App() {
           </div>
         </div>
 
-        <div className="operator">
+        <div className="operator" onClick={handleLogout} style={{ cursor: 'pointer' }} title="Log out Operator">
           <div className="avatar">RS</div>
           <div>
             <strong>Ravi Sharma</strong>
-            <small>Control room officer</small>
+            <small>Exit Command Console</small>
           </div>
         </div>
       </aside>
@@ -461,10 +930,13 @@ function App() {
           </div>
 
           <div className="top-actions">
-            {/* Offline Mode Toggle Sim */}
+            {/* Offline Mode Toggle Simulator */}
             <button 
               className={`offline-toggle-btn ${offlineMode ? 'offline' : 'online'}`}
-              onClick={() => setOfflineMode(!offlineMode)}
+              onClick={() => {
+                setOfflineMode(!offlineMode)
+                showNotification(offlineMode ? 'Network connection restored.' : 'Network disconnected. Device operating offline.', offlineMode ? 'info' : 'warning')
+              }}
               title={offlineMode ? 'Simulating offline state' : 'Network is online'}
             >
               {offlineMode ? '🔴 Offline Mode' : '🟢 Online Mode'}
@@ -472,13 +944,14 @@ function App() {
 
             {/* Weather Alert Selector */}
             <div className="weather-dropdown-container">
-              <label htmlFor="weather-alert-select">Alert: </label>
+              <label htmlFor="weather-alert-select-op">Alert: </label>
               <select 
-                id="weather-alert-select"
+                id="weather-alert-select-op"
                 value={weatherAlert} 
                 onChange={(e) => {
                   setWeatherAlert(e.target.value)
                   showNotification(`Weather alert level shifted to ${e.target.value}`, 'warning')
+                  logDev(`Weather alert shifted to ${e.target.value}. AI base weightings scaled.`, 'system')
                 }}
                 className={`weather-alert-select ${weatherAlert.toLowerCase()}`}
               >
@@ -492,7 +965,7 @@ function App() {
           </div>
         </header>
 
-        {/* Global Dashboard alert banners */}
+        {/* Global Dashboard alert banner */}
         {weatherAlert === 'Red' && (
           <div className="alert-banner red-alert pulsing">
             <strong>⚠️ CRITICAL WEATHER WARNING (RED ALERT):</strong> Base AI emergency scores boosted by +15. Ensure all high-risk hazards are evaluated immediately.
@@ -573,60 +1046,37 @@ function App() {
                 </div>
               </div>
 
-              <div className="map-panel panel">
-                <div className="panel-heading">
+              {/* IoT Matrix Stream Panel */}
+              <div className="map-panel panel" style={{ display: 'flex', flexDirection: 'column' }}>
+                <div className="panel-heading" style={{ padding: '22px 22px 10px' }}>
                   <div>
-                    <p className="eyebrow">LIVE INCIDENT MAP</p>
-                    <h2>Ameerpet pilot zone</h2>
+                    <p className="eyebrow">HYDRA IoT TELEMETRY</p>
+                    <h2>Ameerpet Sensors Live Stream</h2>
                   </div>
-                  <button className="map-button" onClick={() => setView('Incident map')}>Fullscreen map</button>
+                  <span className="live-badge" style={{ padding: '3px 8px' }}>Active</span>
                 </div>
                 
-                <div className="map-canvas" role="img" aria-label="Illustrative map of the Ameerpet pilot zone showing reported incidents">
-                  <div className="river one"></div>
-                  <div className="river two"></div>
-                  <div className="road r1"></div>
-                  <div className="road r2"></div>
-                  <div className="road r3"></div>
-                  
-                  <span className="map-label l1">Ameerpet Metro</span>
-                  <span className="map-label l2">Buddhanagar</span>
-                  <span className="map-label l3">Maitrivanam</span>
-                  
-                  {/* Incident Pins */}
-                  {incidents.filter(inc => inc.status !== 'Resolved').map((incident) => (
-                    <button 
-                      key={incident.id} 
-                      onClick={() => setSelectedId(incident.id)} 
-                      className={`map-pin ${incident.priority.toLowerCase()} ${incident.status === 'Team dispatched' ? 'pulse-pin' : ''}`} 
-                      style={{ left: `${incident.x}%`, top: `${incident.y}%` }} 
-                      title={incident.type}
-                    >
-                      {incident.icon}
-                    </button>
-                  ))}
-
-                  {/* Active Vehicle/Response animation */}
-                  {Object.keys(dispatchAnimations).map(id => {
-                    const anim = dispatchAnimations[id]
-                    if (anim.progress >= 100) return null
-                    return (
-                      <div 
-                        key={`vehicle-${id}`} 
-                        className="map-vehicle" 
-                        style={{ left: `${anim.x}%`, top: `${anim.y}%` }}
-                        title={`${anim.teamName} en route`}
-                      >
-                        🚨
+                <div className="iot-sensors-container" style={{ padding: '0 22px 22px', flex: 1, display: 'grid', gap: '10px' }}>
+                  {sensors.map(s => (
+                    <div key={s.id} className={`sensor-strip-card ${s.status.toLowerCase()}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', border: '1px solid #edf1ef', borderRadius: '8px', background: s.status === 'CRITICAL' ? '#fff5f4' : s.status === 'WARNING' ? '#fffbf2' : 'white' }}>
+                      <div>
+                        <strong>{s.id}: {s.type}</strong>
+                        <div style={{ fontSize: '9px', color: '#7a8683' }}>{s.landmark}</div>
                       </div>
-                    )
-                  })}
-
-                  <div className="map-legend">
-                    <span><i className="legend-dot critical"></i>Critical</span>
-                    <span><i className="legend-dot high"></i>High</span>
-                    <span><i className="legend-dot medium"></i>Medium</span>
-                  </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontFamily: 'DM Mono', fontWeight: 'bold', fontSize: '13px', color: s.status === 'CRITICAL' ? '#c8493d' : s.status === 'WARNING' ? '#a06010' : '#176f59' }}>
+                          {s.value}{s.unit}
+                        </span>
+                        <button 
+                          className="map-button" 
+                          style={{ padding: '4px 6px', fontSize: '9px' }}
+                          onClick={() => handleSensorTriage(s)}
+                        >
+                          Triage
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </section>
@@ -721,6 +1171,17 @@ function App() {
                     {selected.status === 'Team dispatched' ? '✓ Team dispatched' : 'Approve response'}
                   </button>
 
+                  {/* Preempt & Redirect dispatcher button */}
+                  {selected.status === 'Team dispatched' && preemptTargetOptions.length > 0 && (
+                    <button 
+                      className="resolve-button btn-secondary" 
+                      onClick={() => setPreemptDialogOpen(true)}
+                      style={{ color: '#a06010', borderColor: '#fdd895', background: '#fffbf2' }}
+                    >
+                      🔄 Preempt & Redirect
+                    </button>
+                  )}
+
                   {selected.status === 'Team dispatched' && (
                     <button 
                       className="resolve-button btn-secondary" 
@@ -731,6 +1192,38 @@ function App() {
                   )}
                 </div>
               </div>
+
+              {/* Preempt Dialog Selector Overlay */}
+              {preemptDialogOpen && (
+                <div className="preempt-overlay-dialog" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'grid', placeItems: 'center', zIndex: 1000 }}>
+                  <div className="preempt-modal-box" style={{ background: 'white', padding: '24px', borderRadius: '11px', width: '400px', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>
+                    <h3>Redirect Response Team</h3>
+                    <p style={{ fontSize: '11px', color: '#536763', margin: '8px 0 15px' }}>
+                      Redirect <strong>{selected.team}</strong> away from <strong>{selected.id}</strong> to a higher priority case. The current incident will return to the triage queue.
+                    </p>
+                    
+                    <div className="form-group" style={{ marginBottom: '15px' }}>
+                      <label htmlFor="preempt-target-select">Choose Target Incident:</label>
+                      <select 
+                        id="preempt-target-select"
+                        value={preemptTargetIncidentId} 
+                        onChange={e => setPreemptTargetIncidentId(e.target.value)}
+                        style={{ width: '100%' }}
+                      >
+                        <option value="">-- Select Pending Incident --</option>
+                        {preemptTargetOptions.map(opt => (
+                          <option key={opt.id} value={opt.id}>{opt.id}: {opt.type} ({opt.location}) [{opt.priority}]</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                      <button className="resolve-button btn-secondary" onClick={() => setPreemptDialogOpen(false)}>Cancel</button>
+                      <button className="approve-button" onClick={confirmPreemptAndRedirect} disabled={!preemptTargetIncidentId}>Confirm Redirect</button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Explain with AI chat drawer */}
               {aiExplainOpen && (
@@ -753,6 +1246,34 @@ function App() {
                   </div>
                 </div>
               )}
+
+              {/* Two-Way Citizen Chat Log Console */}
+              <div className="audit-trail-section citizen-chat-console" style={{ borderTop: '1px solid #edf1ef', marginTop: '18px', paddingTop: '15px' }}>
+                <h5>💬 Two-Way Citizen Communication Log ({selected.id})</h5>
+                <p className="panel-intro" style={{ marginBottom: '8px' }}>Send direct instructions or query coordinates. Citizen response is simulated in real-time.</p>
+                
+                <div className="citizen-sms-display" style={{ border: '1px solid #edf1ef', background: '#fbfdfc', height: '140px', overflowY: 'auto', padding: '10px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '8px' }}>
+                  {selected.smsHistory && selected.smsHistory.map((sms, idx) => (
+                    <div key={idx} className={`chat-bubble ${sms.sender === 'Operator' ? 'operator' : 'ai'}`} style={{ alignSelf: sms.sender === 'Operator' ? 'flex-end' : 'flex-start', background: sms.sender === 'Operator' ? '#176f59' : '#fff', border: sms.sender === 'Operator' ? 'none' : '1px solid #dce4e1', color: sms.sender === 'Operator' ? 'white' : '#253330', padding: '6px 10px', borderRadius: '8px', fontSize: '10px', maxWidth: '80%' }}>
+                      <strong>{sms.sender}:</strong> {sms.text} <small style={{ float: 'right', marginLeft: '10px', opacity: 0.7 }}>{sms.time}</small>
+                    </div>
+                  ))}
+                  {(!selected.smsHistory || selected.smsHistory.length === 0) && (
+                    <p style={{ color: '#7a8683', fontStyle: 'italic', fontSize: '10px', textAlign: 'center', margin: 'auto' }}>No message history. Initiate chat below.</p>
+                  )}
+                </div>
+
+                <form onSubmit={handleSendSms} style={{ display: 'flex', gap: '10px' }}>
+                  <input 
+                    type="text" 
+                    value={smsInputText} 
+                    onChange={e => setSmsInputText(e.target.value)} 
+                    placeholder={`Type instructions to citizen at ${selected.location}...`}
+                    style={{ flex: 1, border: '1px solid #dce4e1', borderRadius: '8px', padding: '8px 10px', fontSize: '11px' }}
+                  />
+                  <button type="submit" className="approve-button" style={{ padding: '8px 15px' }}>Send</button>
+                </form>
+              </div>
 
               {/* Incident report audit logs */}
               {selected.linkedReports && selected.linkedReports.length > 0 && (
@@ -872,7 +1393,6 @@ function App() {
             
             <div className="teams-grid">
               {teams.map(team => {
-                // Find current assigned active incident
                 const activeAssignment = incidents.find(
                   i => i.team === team.name && i.status === 'Team dispatched'
                 )
@@ -920,20 +1440,20 @@ function App() {
           </section>
         )}
 
-        {/* CITIZEN REPORTS VIEW (EDUCATIONAL SIMULATOR) */}
+        {/* CITIZEN REPORTS VIEW (SIMULATOR FOR OPERATORS) */}
         {view === 'Reports' && (
           <section className="citizen-portal panel">
             <div className="content-grid">
               <div className="citizen-form-section">
-                <p className="eyebrow">CITIZEN ENGAGEMENT PORTAL</p>
-                <h2>Submit Flood & Emergency Report</h2>
-                <p className="panel-intro">Citizens can report flood hazards in real-time. The AI triage engine handles duplicate mapping and prioritizes emergencies automatically.</p>
+                <p className="eyebrow">CITIZEN REPORT SIMULATOR</p>
+                <h2>Ingest Citizen Flooding Report</h2>
+                <p className="panel-intro">Simulate incoming citizen calls to verify explainable AI prioritization and duplicate detection rules.</p>
 
                 <form onSubmit={handleCitizenSubmit} className="citizen-form">
                   <div className="form-group">
-                    <label htmlFor="rep-name">Reporter Name:</label>
+                    <label htmlFor="cit-name-sim">Reporter Name:</label>
                     <input 
-                      id="rep-name"
+                      id="cit-name-sim"
                       type="text" 
                       placeholder="e.g. Anand Sharma" 
                       value={citizenForm.name} 
@@ -943,9 +1463,9 @@ function App() {
                   </div>
 
                   <div className="form-group">
-                    <label htmlFor="rep-phone">Phone Number:</label>
+                    <label htmlFor="cit-phone-sim">Phone Number:</label>
                     <input 
-                      id="rep-phone"
+                      id="cit-phone-sim"
                       type="tel" 
                       placeholder="e.g. +91 98480 12345" 
                       value={citizenForm.phone} 
@@ -955,9 +1475,9 @@ function App() {
                   </div>
 
                   <div className="form-group">
-                    <label htmlFor="rep-location">Area Landmark:</label>
+                    <label htmlFor="cit-location-sim">Area Landmark:</label>
                     <select 
-                      id="rep-location"
+                      id="cit-location-sim"
                       value={citizenForm.location} 
                       onChange={e => setCitizenForm(prev => ({ ...prev, location: e.target.value }))}
                     >
@@ -968,9 +1488,9 @@ function App() {
                   </div>
 
                   <div className="form-group">
-                    <label htmlFor="rep-type">Hazard Type:</label>
+                    <label htmlFor="cit-type-sim">Hazard Type:</label>
                     <select 
-                      id="rep-type"
+                      id="cit-type-sim"
                       value={citizenForm.type} 
                       onChange={e => setCitizenForm(prev => ({ ...prev, type: e.target.value }))}
                     >
@@ -1002,9 +1522,9 @@ function App() {
                   </div>
 
                   <div className="form-group">
-                    <label htmlFor="rep-desc">Description of Hazard:</label>
+                    <label htmlFor="cit-desc-sim">Description of Hazard:</label>
                     <textarea 
-                      id="rep-desc"
+                      id="cit-desc-sim"
                       rows="3" 
                       placeholder="What is happening? Provide specific details (e.g. water height, spark frequency)..." 
                       value={citizenForm.description} 
@@ -1048,6 +1568,33 @@ function App() {
             </div>
           </section>
         )}
+
+        {/* RETAINABLE DEV SYSTEM TELEMETRY LOGGER DRAWER */}
+        <section className={`dev-telemetry-drawer ${devConsoleOpen ? 'expanded' : 'collapsed'}`} style={{ marginTop: '22px', border: '1px solid #dce4e1', borderRadius: '11px', background: '#1c2422', color: '#72ddad', overflow: 'hidden' }}>
+          <header 
+            className="drawer-bar" 
+            onClick={() => setDevConsoleOpen(!devConsoleOpen)} 
+            style={{ padding: '12px 18px', background: '#121817', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', borderBottom: devConsoleOpen ? '1px solid #2d3c39' : 'none' }}
+          >
+            <strong style={{ fontSize: '11px', fontFamily: 'DM Mono', letterSpacing: '0.8px' }}>⚙️ DEVELOPER SYSTEM TELEMETRY LOGGER (SQL & AI)</strong>
+            <button style={{ background: 'none', border: 0, color: '#72ddad', cursor: 'pointer', fontSize: '11px' }}>
+              {devConsoleOpen ? '▼ Hide Console' : '▲ Show Console'}
+            </button>
+          </header>
+
+          {devConsoleOpen && (
+            <div className="console-log-body" style={{ padding: '15px', maxHeight: '180px', overflowY: 'auto', fontFamily: 'DM Mono, monospace', fontSize: '10px', display: 'grid', gap: '5px' }}>
+              {devLogs.map((log, idx) => (
+                <div key={idx} className="console-log-row" style={{ borderBottom: '1px solid #25302e', paddingBottom: '3px', lineBreak: 'anywhere' }}>
+                  {log}
+                </div>
+              ))}
+              {devLogs.length === 0 && (
+                <span style={{ color: '#8aa8a1', fontStyle: 'italic' }}>System idle. Awaiting operational triggers...</span>
+              )}
+            </div>
+          )}
+        </section>
       </section>
     </main>
   )
