@@ -212,6 +212,9 @@ function MapContainer({ incidents, selectedId, setSelectedId, dispatchAnimations
 
     // Add Incident Pins
     displayIncidents.forEach(inc => {
+      const lat = inc.lat !== undefined ? inc.lat : 17.4374
+      const lng = inc.lng !== undefined ? inc.lng : 78.4482
+      
       const color = inc.priority === 'Critical' ? '#e96455' : 
                     inc.priority === 'High' ? '#e9a256' : 
                     inc.priority === 'Medium' ? '#d5bc4d' : '#58a998'
@@ -223,7 +226,7 @@ function MapContainer({ incidents, selectedId, setSelectedId, dispatchAnimations
         iconAnchor: [16, 16]
       })
 
-      const marker = L.marker([inc.lat, inc.lng], { icon: customIcon })
+      const marker = L.marker([lat, lng], { icon: customIcon })
         .addTo(markersLayer)
         .on('click', () => {
           setSelectedId(inc.id)
@@ -232,7 +235,7 @@ function MapContainer({ incidents, selectedId, setSelectedId, dispatchAnimations
       if (inc.id === selectedId) {
         marker.bindPopup(`<b>${inc.id}: ${inc.type}</b><br/>${inc.location}<br/>Priority: ${inc.priority}`, { closeButton: false }).openPopup()
         if (!isMini) {
-          map.setView([inc.lat, inc.lng], 15, { animate: true })
+          map.setView([lat, lng], 15, { animate: true })
         }
       }
     })
@@ -243,7 +246,7 @@ function MapContainer({ incidents, selectedId, setSelectedId, dispatchAnimations
       if (anim.progress >= 100) return
 
       const inc = incidents.find(i => i.id === id)
-      if (!inc) return
+      if (!inc || inc.lat === undefined) return
 
       const depot = [17.4357, 78.4446] // Ameerpet Metro
       const target = [inc.lat, inc.lng]
@@ -273,8 +276,11 @@ function MapContainer({ incidents, selectedId, setSelectedId, dispatchAnimations
 
     // Fit Bounds if large view and pins present
     if (!isMini && displayIncidents.length > 0 && !selectedId) {
-      const bounds = L.latLngBounds(displayIncidents.map(i => [i.lat, i.lng]))
-      map.fitBounds(bounds, { padding: [40, 40] })
+      const validPins = displayIncidents.filter(i => i.lat !== undefined && i.lng !== undefined)
+      if (validPins.length > 0) {
+        const bounds = L.latLngBounds(validPins.map(i => [i.lat, i.lng]))
+        map.fitBounds(bounds, { padding: [40, 40] })
+      }
     }
   }, [displayIncidents, selectedId, dispatchAnimations, isMini, setSelectedId, incidents])
 
@@ -310,10 +316,28 @@ function App() {
   // State Management with LocalStorage persistence
   const [incidents, setIncidents] = useState(() => {
     const saved = localStorage.getItem('nxtwave_incidents')
-    return saved ? JSON.parse(saved) : initialIncidents
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        // If it's the old schema (missing lat/lng), ignore cached data
+        if (parsed.length > 0 && parsed[0].lat === undefined) {
+          localStorage.removeItem('nxtwave_incidents')
+          localStorage.removeItem('nxtwave_teams') // Reset teams too
+          return initialIncidents
+        }
+        return parsed
+      } catch {
+        return initialIncidents
+      }
+    }
+    return initialIncidents
   })
   const [teams, setTeams] = useState(() => {
     const saved = localStorage.getItem('nxtwave_teams')
+    if (!localStorage.getItem('nxtwave_incidents')) {
+      localStorage.removeItem('nxtwave_teams')
+      return initialTeams
+    }
     return saved ? JSON.parse(saved) : initialTeams
   })
   const [weatherAlert, setWeatherAlert] = useState(() => {
