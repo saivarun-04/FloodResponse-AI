@@ -96,6 +96,96 @@ const initialIncidents = [
     ],
     smsHistory: []
   },
+  {
+    id: 'INC-1049',
+    type: 'Blocked drainage',
+    icon: '🕳️',
+    location: 'Satyam Theatre Road',
+    time: '24 min ago',
+    priority: 'Medium',
+    score: 58,
+    reports: 2,
+    route: 'Srinivasa Nagar Road',
+    eta: '14 min',
+    team: 'Drainage Response Team 04',
+    reason: 'Stormwater backflow spilling onto pavements near the Satyam theater complex.',
+    factors: ['Commercial road impact', '2 corroborating reports'],
+    status: 'Awaiting approval',
+    lat: 17.4385,
+    lng: 78.4440,
+    linkedReports: [
+      { id: 'REP-007', name: 'Vivek S.', phone: '9440122334', description: 'Water bubbling up from drainage slab.', timestamp: '24 min ago' }
+    ],
+    smsHistory: []
+  },
+  {
+    id: 'INC-1050',
+    type: 'Live electrical wire',
+    icon: '⚡',
+    location: 'Dharam Karam Road',
+    time: '2 min ago',
+    priority: 'Critical',
+    score: 91,
+    reports: 2,
+    route: 'Balkampet Main Road',
+    eta: '11 min',
+    team: 'Electrical Emergency Team 02',
+    reason: 'Overhead transformer line snapped, touching metallic street pole.',
+    factors: ['Immediate fire threat', 'High population area', 'Emergency service lane'],
+    status: 'Awaiting approval',
+    lat: 17.4412,
+    lng: 78.4428,
+    linkedReports: [
+      { id: 'REP-008', name: 'Nisha G.', phone: '9502399881', description: 'Snapped wire sparking against post on Dharam Karam road.', timestamp: '2 min ago' }
+    ],
+    smsHistory: [
+      { sender: 'Citizen', text: 'Live sparking wire has fallen! Please cut power grid.', time: '2 min ago' }
+    ]
+  },
+  {
+    id: 'INC-1051',
+    type: 'Stranded residents',
+    icon: '🛟',
+    location: 'Sanjeeva Reddy Nagar (SR Nagar)',
+    time: '32 min ago',
+    priority: 'High',
+    score: 78,
+    reports: 4,
+    route: 'Srinivasa Nagar Road',
+    eta: '10 min',
+    team: 'Disaster Response Unit 01',
+    reason: 'Four reports indicate sub-level basement apartments fully flooded, residents evacuated to terrace.',
+    factors: ['4 corroborating reports', 'Basement inundation', 'Displaced residents'],
+    status: 'Awaiting approval',
+    lat: 17.4445,
+    lng: 78.4410,
+    linkedReports: [
+      { id: 'REP-009', name: 'Praveen', phone: '9885012345', description: 'Cellar fully filled. We are on the roof.', timestamp: '32 min ago' }
+    ],
+    smsHistory: []
+  },
+  {
+    id: 'INC-1052',
+    type: 'Waterlogged road',
+    icon: '🌊',
+    location: 'Ameerpet Cross Roads',
+    time: '41 min ago',
+    priority: 'Low',
+    score: 34,
+    reports: 1,
+    route: 'Metro service lane',
+    eta: '25 min',
+    team: 'Traffic Diversion Team 03',
+    reason: 'Standing water under flyover causing minor traffic diversion.',
+    factors: ['Traffic diversion', 'Single report'],
+    status: 'Needs verification',
+    lat: 17.4372,
+    lng: 78.4452,
+    linkedReports: [
+      { id: 'REP-010', name: 'Varun K.', phone: '9908123456', description: 'Water build-up under flyover.', timestamp: '41 min ago' }
+    ],
+    smsHistory: []
+  }
 ]
 
 const initialTeams = [
