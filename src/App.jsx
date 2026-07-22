@@ -112,12 +112,26 @@ const initialSensors = [
 ]
 
 // LEAFLET MAP WRAPPER COMPONENT
+// LEAFLET MAP WRAPPER COMPONENT
 function MapContainer({ incidents, selectedId, setSelectedId, dispatchAnimations, mapPriorityFilter, mapStatusFilter, isMini = false }) {
   const mapRef = useRef(null)
   const leafletMapInstance = useRef(null)
   const markersLayerRef = useRef(null)
   const polylineLayerRef = useRef(null)
   const vehicleMarkersRef = useRef({})
+  const [leafletReady, setLeafletReady] = useState(typeof window.L !== 'undefined')
+
+  // Check if Leaflet script loaded
+  useEffect(() => {
+    if (leafletReady) return
+    const interval = setInterval(() => {
+      if (typeof window.L !== 'undefined') {
+        setLeafletReady(true)
+        clearInterval(interval)
+      }
+    }, 100)
+    return () => clearInterval(interval)
+  }, [leafletReady])
 
   // Filter display markers
   const displayIncidents = useMemo(() => {
@@ -131,10 +145,14 @@ function MapContainer({ incidents, selectedId, setSelectedId, dispatchAnimations
 
   // Initialize Map
   useEffect(() => {
-    if (!mapRef.current || typeof window.L === 'undefined') return
+    if (!leafletReady || !mapRef.current) return
 
-    if (!leafletMapInstance.current) {
-      const L = window.L
+    const L = window.L
+    
+    // Safety check to prevent double init
+    if (leafletMapInstance.current) return
+
+    try {
       leafletMapInstance.current = L.map(mapRef.current, {
         center: [17.4374, 78.4482], // Ameerpet, Hyderabad
         zoom: 14,
@@ -151,16 +169,22 @@ function MapContainer({ incidents, selectedId, setSelectedId, dispatchAnimations
 
       markersLayerRef.current = L.layerGroup().addTo(leafletMapInstance.current)
       polylineLayerRef.current = L.layerGroup().addTo(leafletMapInstance.current)
+    } catch (err) {
+      console.error("Leaflet initialization failed", err)
     }
 
     return () => {
       // Clean up instance on unmount
-      if (leafletMapInstance.current && !isMini) {
-        leafletMapInstance.current.remove()
+      if (leafletMapInstance.current) {
+        try {
+          leafletMapInstance.current.remove()
+        } catch (e) {
+          console.warn("Error removing leaflet instance", e)
+        }
         leafletMapInstance.current = null
       }
     }
-  }, [isMini])
+  }, [leafletReady, isMini])
 
   // Redraw Markers, Polylines and Vehicles
   useEffect(() => {
@@ -171,12 +195,18 @@ function MapContainer({ incidents, selectedId, setSelectedId, dispatchAnimations
     const markersLayer = markersLayerRef.current
     const polylineLayer = polylineLayerRef.current
 
+    if (!markersLayer || !polylineLayer) return
+
     markersLayer.clearLayers()
     polylineLayer.clearLayers()
 
     // Clean up old vehicle markers
     Object.keys(vehicleMarkersRef.current).forEach(id => {
-      vehicleMarkersRef.current[id].remove()
+      if (vehicleMarkersRef.current[id]) {
+        try {
+          vehicleMarkersRef.current[id].remove()
+        } catch {}
+      }
     })
     vehicleMarkersRef.current = {}
 
@@ -232,7 +262,7 @@ function MapContainer({ incidents, selectedId, setSelectedId, dispatchAnimations
 
       const vehicleIcon = L.divIcon({
         className: 'leaflet-vehicle-icon',
-        html: `<div style="font-size: 20px; text-shadow: 0 1px 4px rgba(0,0,0,0.3); animation: pulsing 1.5s infinite;">🚨</div>`,
+        html: `<div style="font-size: 20px; text-shadow: 0 1px 4px rgba(0,0,0,0.3);">🚨</div>`,
         iconSize: [24, 24],
         iconAnchor: [12, 12]
       })
@@ -247,6 +277,17 @@ function MapContainer({ incidents, selectedId, setSelectedId, dispatchAnimations
       map.fitBounds(bounds, { padding: [40, 40] })
     }
   }, [displayIncidents, selectedId, dispatchAnimations, isMini, setSelectedId, incidents])
+
+  if (!leafletReady) {
+    return (
+      <div style={{ display: 'grid', placeItems: 'center', height: '100%', minHeight: isMini ? '293px' : '500px', background: '#1c2422', color: '#72ddad', fontFamily: 'DM Mono', fontSize: '11px', borderRadius: '8px' }}>
+        <div style={{ textAlign: 'center' }}>
+          <span style={{ fontSize: '20px', display: 'block', marginBottom: '8px', animation: 'pulsing 2s infinite' }}>🛰️</span>
+          Connecting to GIS Satellite Tiles...
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div 
