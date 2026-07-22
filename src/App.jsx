@@ -6,183 +6,180 @@ const initialIncidents = [
     id: 'INC-1048',
     type: 'Live electrical wire',
     icon: '⚡',
-    location: 'Maitrivanam junction, Ameerpet',
-    time: '4 min ago',
+    location: 'Bandlaguda Main Road, Hyderabad',
+    time: '10 min ago',
     priority: 'Critical',
-    score: 94,
-    reports: 3,
-    route: 'Balkampet Road',
-    eta: '12 min',
+    score: 98,
+    reports: 6,
+    route: 'Bandlaguda Main Rd',
+    eta: '14 min',
     team: 'Electrical Emergency Team 02',
-    reason: 'Live wire in standing water, three matching reports, and an ambulance route is affected.',
-    factors: ['Threat to life', '3 corroborating reports', 'Emergency route affected'],
+    reason: 'Live snapped high-voltage power wire on a heavily waterlogged road. 6 matching reports registered.',
+    factors: ['Threat to life', '6 corroborating reports', 'Severe waterlogging'],
     status: 'Awaiting approval',
-    lat: 17.4368,
-    lng: 78.4439,
+    lat: 17.3486,
+    lng: 78.4612,
     linkedReports: [
-      { id: 'REP-001', name: 'Kiran Kumar', phone: '9876543210', description: 'Sparking wire fell into the water near Maitrivanam.', timestamp: '10 min ago' },
-      { id: 'REP-002', name: 'Anitha R.', phone: '9848022338', description: 'Live cable sparking on flooded road.', timestamp: '7 min ago' },
-      { id: 'REP-003', name: 'Suresh P.', phone: '9000123456', description: 'Please send help, electrical sparks in water.', timestamp: '4 min ago' }
+      { id: 'REP-001', name: 'Zafar', phone: '9848011223', description: 'Snapped wire sparkling in water on Bandlaguda main road.', timestamp: '12 min ago' },
+      { id: 'REP-002', name: 'Afroz', phone: '9000122334', description: 'People getting shocks stepping out of autos. Waterlogged.', timestamp: '10 min ago' }
     ],
     smsHistory: [
-      { sender: 'Citizen', text: 'Sparks coming out from the junction pole under water!', time: '10 min ago' }
+      { sender: 'Citizen', text: 'Live snapping wire fell in flood water! We are trapped in auto.', time: '10 min ago' }
     ]
   },
   {
     id: 'INC-1047',
-    type: 'Stranded residents',
-    icon: '🛟',
-    location: 'Buddhanagar, Lane 3',
-    time: '8 min ago',
-    priority: 'High',
-    score: 82,
-    reports: 5,
-    route: 'Srinivasa Nagar Road',
-    eta: '9 min',
-    team: 'Disaster Response Unit 01',
-    reason: 'Five reports describe two elderly residents unable to leave a flooded ground-floor home.',
-    factors: ['Vulnerable residents', '5 corroborating reports', 'Water entering homes'],
+    type: 'Live electrical wire',
+    icon: '⚡',
+    location: 'Telecom Colony, Alwal',
+    time: '15 min ago',
+    priority: 'Critical',
+    score: 95,
+    reports: 4,
+    route: 'Alwal NH-44 approach',
+    eta: '18 min',
+    team: 'Electrical Emergency Team 02',
+    reason: 'Fallen tree branch snapped live power cable onto a parked vehicle. High danger of contact.',
+    factors: ['Transformer line snapped', 'High-voltage risk', 'Emergency access blocked'],
     status: 'Awaiting approval',
-    lat: 17.4325,
-    lng: 78.4465,
+    lat: 17.5011,
+    lng: 78.5029,
     linkedReports: [
-      { id: 'REP-004', name: 'Rajesh V.', phone: '9111222333', description: 'Elderly couple stuck on ground floor. Water at 2 feet.', timestamp: '8 min ago' }
+      { id: 'REP-003', name: 'Sandeep', phone: '9111222333', description: 'Tree branch fell on car and snapped the power cable. Sparkling.', timestamp: '15 min ago' }
     ],
     smsHistory: [
-      { sender: 'Citizen', text: 'Water level is rising. My grandparents cannot climb up. Help!', time: '8 min ago' }
+      { sender: 'Citizen', text: 'Wire is touching our car door. We cannot step out safely.', time: '15 min ago' }
     ]
   },
   {
     id: 'INC-1046',
-    type: 'Blocked drainage',
-    icon: '🕳️',
-    location: 'Balkampet Main Road',
-    time: '13 min ago',
-    priority: 'Medium',
-    score: 61,
-    reports: 2,
-    route: 'Balkampet Main Road',
-    eta: '18 min',
-    team: 'Drainage Response Team 04',
-    reason: 'Drain cover blockage is worsening waterlogging but no immediate danger to people is reported.',
-    factors: ['2 corroborating reports', 'Increasing water depth', 'Main-road impact'],
+    type: 'Stranded residents',
+    icon: '🛟',
+    location: 'SR Nagar Metro Corridor',
+    time: '25 min ago',
+    priority: 'High',
+    score: 85,
+    reports: 5,
+    route: 'Srinivasa Nagar Road',
+    eta: '9 min',
+    team: 'Disaster Response Unit 01',
+    reason: 'Deep cellar flooding in basement apartment complexes. 5 reports. Elderly residents unable to climb up.',
+    factors: ['Vulnerable residents', '5 corroborating reports', 'Basement inundation'],
     status: 'Awaiting approval',
-    lat: 17.4410,
-    lng: 78.4470,
+    lat: 17.4445,
+    lng: 78.4410,
     linkedReports: [
-      { id: 'REP-005', name: 'Mohammad', phone: '9555666777', description: 'Large plastic block in stormwater drain.', timestamp: '13 min ago' }
+      { id: 'REP-004', name: 'Rajesh V.', phone: '9123456789', description: 'Basement fully flooded under metro line. Residents stuck.', timestamp: '25 min ago' }
     ],
     smsHistory: []
   },
   {
     id: 'INC-1045',
-    type: 'Waterlogged road',
-    icon: '🌊',
-    location: 'Ameerpet Metro approach',
-    time: '18 min ago',
-    priority: 'Low',
-    score: 38,
-    reports: 1,
-    route: 'Metro service lane',
-    eta: '22 min',
-    team: 'Traffic Diversion Team 03',
-    reason: 'One report indicates slow traffic. Nearby reports do not yet corroborate a full road blockage.',
-    factors: ['Single report', 'Traffic disruption', 'Needs verification'],
-    status: 'Needs verification',
-    lat: 17.4357,
-    lng: 78.4446,
+    type: 'Blocked drainage',
+    icon: '🕳️',
+    location: 'Maitrivanam Nala stretch',
+    time: '35 min ago',
+    priority: 'Medium',
+    score: 62,
+    reports: 3,
+    route: 'Balkampet Road',
+    eta: '15 min',
+    team: 'Drainage Response Team 04',
+    reason: 'Severe garbage and plastic blockage in stormwater nala causing overflow near Krishna Kanth Park road.',
+    factors: ['Nala encroachment', '3 corroborating reports', 'Risk to nearby structures'],
+    status: 'Awaiting approval',
+    lat: 17.4385,
+    lng: 78.4440,
     linkedReports: [
-      { id: 'REP-006', name: 'David L.', phone: '9222333444', description: 'Water building up near metro steps.', timestamp: '18 min ago' }
+      { id: 'REP-005', name: 'Vivek S.', phone: '9440122334', description: 'Garbage choking stormwater nala behind Maitrivanam.', timestamp: '35 min ago' }
     ],
     smsHistory: []
   },
   {
     id: 'INC-1049',
-    type: 'Blocked drainage',
-    icon: '🕳️',
-    location: 'Satyam Theatre Road',
-    time: '24 min ago',
-    priority: 'Medium',
-    score: 58,
+    type: 'Waterlogged road',
+    icon: '🌊',
+    location: 'Ameerpet Metro Parking',
+    time: '45 min ago',
+    priority: 'Low',
+    score: 40,
     reports: 2,
-    route: 'Srinivasa Nagar Road',
-    eta: '14 min',
-    team: 'Drainage Response Team 04',
-    reason: 'Stormwater backflow spilling onto pavements near the Satyam theater complex.',
-    factors: ['Commercial road impact', '2 corroborating reports'],
-    status: 'Awaiting approval',
-    lat: 17.4385,
-    lng: 78.4440,
+    route: 'Metro service lane',
+    eta: '20 min',
+    team: 'Traffic Diversion Team 03',
+    reason: 'Heavy runoff from metro rail structure flooding parking entrance, stalling two-wheelers.',
+    factors: ['Metro runoff', 'Traffic congestion', 'Needs verification'],
+    status: 'Needs verification',
+    lat: 17.4357,
+    lng: 78.4446,
     linkedReports: [
-      { id: 'REP-007', name: 'Vivek S.', phone: '9440122334', description: 'Water bubbling up from drainage slab.', timestamp: '24 min ago' }
+      { id: 'REP-006', name: 'David L.', phone: '9222333444', description: 'Water level rising quickly in metro approach lanes.', timestamp: '45 min ago' }
     ],
     smsHistory: []
   },
   {
     id: 'INC-1050',
-    type: 'Live electrical wire',
-    icon: '⚡',
-    location: 'Dharam Karam Road',
-    time: '2 min ago',
-    priority: 'Critical',
-    score: 91,
+    type: 'Blocked drainage',
+    icon: '🕳️',
+    location: 'Balkampet Lane 4',
+    time: '1 hr ago',
+    priority: 'Medium',
+    score: 52,
     reports: 2,
     route: 'Balkampet Main Road',
-    eta: '11 min',
-    team: 'Electrical Emergency Team 02',
-    reason: 'Overhead transformer line snapped, touching metallic street pole.',
-    factors: ['Immediate fire threat', 'High population area', 'Emergency service lane'],
+    eta: '18 min',
+    team: 'Drainage Response Team 04',
+    reason: 'Clogged sewer inlet causing backflow onto residential street.',
+    factors: ['Residential street flood', '2 reports'],
     status: 'Awaiting approval',
-    lat: 17.4412,
-    lng: 78.4428,
+    lat: 17.4425,
+    lng: 78.4485,
     linkedReports: [
-      { id: 'REP-008', name: 'Nisha G.', phone: '9502399881', description: 'Snapped wire sparking against post on Dharam Karam road.', timestamp: '2 min ago' }
+      { id: 'REP-007', name: 'Pramod', phone: '9333444555', description: 'Drainage water entering lane 4.', timestamp: '1 hr ago' }
     ],
-    smsHistory: [
-      { sender: 'Citizen', text: 'Live sparking wire has fallen! Please cut power grid.', time: '2 min ago' }
-    ]
+    smsHistory: []
   },
   {
     id: 'INC-1051',
-    type: 'Stranded residents',
-    icon: '🛟',
-    location: 'Sanjeeva Reddy Nagar (SR Nagar)',
-    time: '32 min ago',
-    priority: 'High',
-    score: 78,
-    reports: 4,
+    type: 'Waterlogged road',
+    icon: '🌊',
+    location: 'Buddhanagar, Lane 3',
+    time: '1.2 hrs ago',
+    priority: 'Low',
+    score: 36,
+    reports: 1,
     route: 'Srinivasa Nagar Road',
-    eta: '10 min',
-    team: 'Disaster Response Unit 01',
-    reason: 'Four reports indicate sub-level basement apartments fully flooded, residents evacuated to terrace.',
-    factors: ['4 corroborating reports', 'Basement inundation', 'Displaced residents'],
-    status: 'Awaiting approval',
-    lat: 17.4445,
-    lng: 78.4410,
+    eta: '22 min',
+    team: 'Traffic Diversion Team 03',
+    reason: 'Standing water up to 6 inches, vehicles moving slowly.',
+    factors: ['Single report', 'Minor waterlogging'],
+    status: 'Needs verification',
+    lat: 17.4325,
+    lng: 78.4465,
     linkedReports: [
-      { id: 'REP-009', name: 'Praveen', phone: '9885012345', description: 'Cellar fully filled. We are on the roof.', timestamp: '32 min ago' }
+      { id: 'REP-008', name: 'Gopal K.', phone: '9444555666', description: 'Water build up on lane 3.', timestamp: '1.2 hrs ago' }
     ],
     smsHistory: []
   },
   {
     id: 'INC-1052',
-    type: 'Waterlogged road',
-    icon: '🌊',
-    location: 'Ameerpet Cross Roads',
-    time: '41 min ago',
-    priority: 'Low',
-    score: 34,
-    reports: 1,
-    route: 'Metro service lane',
-    eta: '25 min',
-    team: 'Traffic Diversion Team 03',
-    reason: 'Standing water under flyover causing minor traffic diversion.',
-    factors: ['Traffic diversion', 'Single report'],
-    status: 'Needs verification',
-    lat: 17.4372,
-    lng: 78.4452,
+    type: 'Stranded residents',
+    icon: '🛟',
+    location: 'Satyam Theatre Road',
+    time: '2 hrs ago',
+    priority: 'High',
+    score: 72,
+    reports: 3,
+    route: 'Srinivasa Nagar Road',
+    eta: '12 min',
+    team: 'Disaster Response Unit 01',
+    reason: 'Ground floor shopping complex flooded, shopkeepers unable to exit.',
+    factors: ['Commercial zone flood', '3 reports'],
+    status: 'Awaiting approval',
+    lat: 17.4385,
+    lng: 78.4440,
     linkedReports: [
-      { id: 'REP-010', name: 'Varun K.', phone: '9908123456', description: 'Water build-up under flyover.', timestamp: '41 min ago' }
+      { id: 'REP-009', name: 'Naresh', phone: '9555666777', description: 'Cellar shops completely flooded.', timestamp: '2 hrs ago' }
     ],
     smsHistory: []
   }
@@ -244,8 +241,8 @@ function MapContainer({ incidents, selectedId, setSelectedId, dispatchAnimations
 
     try {
       leafletMapInstance.current = L.map(mapRef.current, {
-        center: [17.4374, 78.4482], // Ameerpet, Hyderabad
-        zoom: 14,
+        center: [17.425, 78.465], // Hyderabad Central
+        zoom: 11,
         zoomControl: !isMini,
         dragging: !isMini,
         scrollWheelZoom: !isMini,
@@ -411,14 +408,14 @@ function App() {
 
   // State Management with LocalStorage persistence
   const [incidents, setIncidents] = useState(() => {
-    const saved = localStorage.getItem('nxtwave_incidents_v2')
+    const saved = localStorage.getItem('nxtwave_incidents_v3')
     if (saved) {
       try {
         const parsed = JSON.parse(saved)
         // If it's the old schema (missing lat/lng), ignore cached data
         if (parsed.length > 0 && parsed[0].lat === undefined) {
-          localStorage.removeItem('nxtwave_incidents_v2')
-          localStorage.removeItem('nxtwave_teams_v2') // Reset teams too
+          localStorage.removeItem('nxtwave_incidents_v3')
+          localStorage.removeItem('nxtwave_teams_v3') // Reset teams too
           return initialIncidents
         }
         return parsed
@@ -429,18 +426,18 @@ function App() {
     return initialIncidents
   })
   const [teams, setTeams] = useState(() => {
-    const saved = localStorage.getItem('nxtwave_teams_v2')
-    if (!localStorage.getItem('nxtwave_incidents_v2')) {
-      localStorage.removeItem('nxtwave_teams_v2')
+    const saved = localStorage.getItem('nxtwave_teams_v3')
+    if (!localStorage.getItem('nxtwave_incidents_v3')) {
+      localStorage.removeItem('nxtwave_teams_v3')
       return initialTeams
     }
     return saved ? JSON.parse(saved) : initialTeams
   })
   const [weatherAlert, setWeatherAlert] = useState(() => {
-    return localStorage.getItem('nxtwave_weather_v2') || 'Green'
+    return localStorage.getItem('nxtwave_weather_v3') || 'Green'
   })
   const [offlineQueue, setOfflineQueue] = useState(() => {
-    const saved = localStorage.getItem('nxtwave_offline_queue_v2')
+    const saved = localStorage.getItem('nxtwave_offline_queue_v3')
     return saved ? JSON.parse(saved) : []
   })
   const [sensors] = useState(initialSensors)
@@ -485,19 +482,19 @@ function App() {
 
   // Save State to LocalStorage on updates
   useEffect(() => {
-    localStorage.setItem('nxtwave_incidents_v2', JSON.stringify(incidents))
+    localStorage.setItem('nxtwave_incidents_v3', JSON.stringify(incidents))
   }, [incidents])
 
   useEffect(() => {
-    localStorage.setItem('nxtwave_teams_v2', JSON.stringify(teams))
+    localStorage.setItem('nxtwave_teams_v3', JSON.stringify(teams))
   }, [teams])
 
   useEffect(() => {
-    localStorage.setItem('nxtwave_weather_v2', weatherAlert)
+    localStorage.setItem('nxtwave_weather_v3', weatherAlert)
   }, [weatherAlert])
 
   useEffect(() => {
-    localStorage.setItem('nxtwave_offline_queue_v2', JSON.stringify(offlineQueue))
+    localStorage.setItem('nxtwave_offline_queue_v3', JSON.stringify(offlineQueue))
   }, [offlineQueue])
 
   useEffect(() => {
@@ -507,6 +504,38 @@ function App() {
       localStorage.removeItem('nxtwave_role')
     }
   }, [currentUserRole])
+
+  const prevWeatherRef = useRef(weatherAlert)
+
+  useEffect(() => {
+    const prevWeather = prevWeatherRef.current
+    if (prevWeather !== weatherAlert) {
+      let prevBonus = 0
+      if (prevWeather === 'Red') prevBonus = 15
+      else if (prevWeather === 'Yellow') prevBonus = 5
+
+      let newBonus = 0
+      if (weatherAlert === 'Red') newBonus = 15
+      else if (weatherAlert === 'Yellow') newBonus = 5
+
+      const delta = newBonus - prevBonus
+
+      if (delta !== 0) {
+        setIncidents(prev => prev.map(inc => {
+          if (inc.status === 'Resolved') return inc
+          const newScore = Math.min(100, Math.max(10, inc.score + delta))
+          let newPriority = inc.priority
+          if (newScore >= 85) newPriority = "Critical"
+          else if (newScore >= 65) newPriority = "High"
+          else if (newScore >= 45) newPriority = "Medium"
+          else newPriority = "Low"
+          return { ...inc, score: newScore, priority: newPriority }
+        }))
+        logDev(`AI Weather Alert Urgency Shift: Adjusting active incident scores by ${delta >= 0 ? '+' : ''}${delta}.`, 'ai')
+      }
+      prevWeatherRef.current = weatherAlert
+    }
+  }, [weatherAlert])
 
   // Helper: Log Developer and Database Telemetry
   const logDev = (message, type = 'system') => {
@@ -970,7 +999,7 @@ function App() {
 
   // Reroutable options (incidents needing response)
   const preemptTargetOptions = useMemo(() => {
-    return incidents.filter(i => i.id !== selected.id && i.status !== 'Resolved' && i.status !== 'Team dispatched')
+    return incidents.filter(i => selected && i.id !== selected.id && i.status !== 'Resolved' && i.status !== 'Team dispatched')
   }, [incidents, selected])
 
   // Citizen-specific submitted reports list

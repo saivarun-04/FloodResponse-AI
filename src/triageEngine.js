@@ -1,5 +1,10 @@
 // Landmark coordinates for geofencing and duplicate checks
 export const LANDMARKS = {
+  "Bandlaguda Main Road, Hyderabad": { lat: 17.3486, lng: 78.4612 },
+  "Telecom Colony, Alwal": { lat: 17.5011, lng: 78.5029 },
+  "SR Nagar Metro Corridor": { lat: 17.4445, lng: 78.4410 },
+  "Maitrivanam Nala stretch": { lat: 17.4385, lng: 78.4440 },
+  "Ameerpet Metro Parking": { lat: 17.4357, lng: 78.4446 },
   "Maitrivanam junction, Ameerpet": { lat: 17.4368, lng: 78.4439 },
   "Buddhanagar, Lane 3": { lat: 17.4325, lng: 78.4465 },
   "Balkampet Main Road": { lat: 17.4410, lng: 78.4470 },
