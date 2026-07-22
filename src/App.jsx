@@ -779,6 +779,15 @@ function App() {
       }
     }))
 
+    // Voice synthesized dispatcher alert
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel()
+      const text = `Dispatch approved. ${selected.team} deployed to incident ${selected.id}.`
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.rate = 0.95
+      window.speechSynthesis.speak(utterance)
+    }
+
     showNotification(`Emergency Dispatch Approved for ${selected.id}!`, 'success')
     logDev(`UPDATE incidents SET status='Team dispatched' WHERE id='${selected.id}';`, 'db')
     logDev(`UPDATE response_units SET status='Dispatched' WHERE name='${selected.team}';`, 'db')
@@ -853,6 +862,15 @@ function App() {
         icon: targetIncident.icon
       }
     }))
+
+    // Voice synthesized redirection alert
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel()
+      const text = `Preemption approved. Redirecting ${selected.team} to incident ${preemptTargetIncidentId}.`
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.rate = 0.95
+      window.speechSynthesis.speak(utterance)
+    }
 
     showNotification(`Team redirected from ${preemptedIncidentId} to ${preemptTargetIncidentId}!`, 'warning')
     logDev(`PREEMPT TRIGGERED: Redirecting ${selected.team} from ${preemptedIncidentId} to ${preemptTargetIncidentId}.`, 'security')
